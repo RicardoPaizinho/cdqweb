@@ -1,0 +1,130 @@
+/* ============================================================
+   SISTEMA DE CORES GLOBAL: CDQInfo Diagnostic Suite
+   ============================================================ */
+
+:root {
+  /* Configurações de Fonte */
+  --font-main: 'Inter', sans-serif;
+  --font-tech: 'Rajdhani', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --chart-grid: rgba(255, 255, 255, 0.05);
+
+  /* TEMA PADRÃO: DARK & ORANGE (Base do Sistema) */
+  --bg-app: #1a1b1e;           /* Fundo ultra escuro */
+  --bg-panel: #25262b;         /* Painéis e Cards */
+  --bg-hover: #2c2e33;         /* Hover de elementos */
+  
+  --accent: #fe7f2d;           /* Laranja Principal */
+  --accent-rgb: 254, 127, 45;
+  --accent-hover: #ff9d5c;
+  --accent-glow: rgba(254, 127, 45, 0.25);
+  
+  --text-main: #e4eef0;        /* Texto primário */
+  --text-dim: #909296;         /* Labels e descrições */
+  --text-success: #4ecdc4;
+  
+  --border: #373a40;           /* Linhas de divisão */
+  --shadow-color: rgba(0, 0, 0, 0.4);
+
+  --status-pass: #6ddb9b;
+  --status-pass-glow: rgba(109, 219, 155, 0.3);
+  --status-fail: #e74c3c;
+  --status-fail-glow: rgba(231, 76, 60, 0.3);
+  --text-on-status: #ffffff;
+}
+
+/* ------------------------------------------------------------
+   VARIAÇÕES DE TEMAS (data-theme)
+   ------------------------------------------------------------ */
+
+/* TEMA: DARK ORANGE (Industrial) */
+[data-theme='dark-orange-mode'] {
+  --bg-app: #121212;
+  --bg-panel: #1e1e1e;
+  --accent: #eb5e28;
+  --accent-rgb: 235, 94, 40;
+  --border: #2b2b2b;
+}
+
+/* TEMA: EMERALD CYBER (Matrix Tech) */
+[data-theme='emerald-cyber'] {
+  --bg-app: #080a09;
+  --bg-panel: #0d1210;
+  --bg-hover: #141d19;
+  --accent: #00ff88;
+  --accent-rgb: 0, 255, 136;
+  --accent-glow: rgba(0, 255, 136, 0.2);
+  --text-main: #e0f2e9;
+  --border: #1a241f;
+}
+
+/* TEMA: CYBER PINK (Neon Night) - NOVO */
+[data-theme='cyber-punk'] {
+  --bg-app: #0d0221;
+  --bg-panel: #19043d;
+  --bg-hover: #260958;
+  --accent: #ff00ff;           /* Magenta/Pink Neon */
+  --accent-rgb: 255, 0, 255;
+  --accent-glow: rgba(255, 0, 255, 0.3);
+  --text-main: #ffffff;
+  --text-dim: #b8a2e3;
+  --border: #310a7a;
+}
+
+/* TEMA: DEEP OCEAN (Submarine Tech) - NOVO */
+[data-theme='deep-ocean'] {
+  --bg-app: #000814;
+  --bg-panel: #001d3d;
+  --bg-hover: #003566;
+  --accent: #00b4d8;           /* Azul Ciano */
+  --accent-rgb: 0, 180, 216;
+  --accent-glow: rgba(0, 180, 216, 0.25);
+  --text-main: #caf0f8;
+  --text-dim: #90e0ef;
+  --border: #003049;
+}
+
+/* TEMA: MIDNIGHT PURPLE (Ametista) */
+[data-theme='midnight-purple'] {
+  --bg-app: #0a0910;
+  --bg-panel: #13111c;
+  --bg-hover: #1c1929;
+  --accent: #a855f7;
+    --accent-glow: rgba(210, 127, 248, 0.25);
+  --accent-rgb: 168, 85, 247;
+  --text-main: #f3e8ff;
+  --border: #252236;
+}
+
+/* TEMA: ARCTIC CLEAN (Claro Glacial) - CORRIGIDO */
+[data-theme='arctic-clean'] {
+  --bg-app: #f1f3f5;           /* Cinza muito claro, não azul */
+  --bg-panel: #ffffff;
+  --bg-hover: #e9ecef;
+  --accent: #228be6;           /* Azul limpo */
+  --accent-rgb: 34, 139, 230;
+  --text-main: #212529;
+  --text-dim: #868e96;
+  --border: #dee2e6;
+  --chart-grid: rgba(0, 0, 0, 0.05);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --text-on-status: #ffffff;
+}
+
+/* TEMA: SOLARIS GOLD (Âmbar Lux) */
+[data-theme='solaris-gold'] {
+  --bg-app: #fffcf2;
+  --bg-panel: #fffefb;
+  --bg-hover: #fcf5e5;
+  --accent: #d97706;
+  --accent-rgb: 217, 119, 6;
+  --text-main: #451a03;
+  --text-dim: #92400e;
+  --border: #f1e3cc;
+  --shadow-color: rgba(69, 26, 3, 0.08);
+}
+
+/* Transições suaves para troca de tema */
+body {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}

@@ -1,0 +1,33 @@
+/*
+  =====================================
+  Definições de Cores Base
+  =====================================
+*/
+:root {
+  /* Cores Primárias (Base) */
+  --color-primary: #ff6b35; /* Laranja da sua barra de progresso */
+  --color-secondary: #fd9873; /* Laranja claro */
+  
+  /* Cores de Fundo (Backgrounds) */
+  --color-background-light: #f0f0f0;
+  --color-background-dark: #2c3e50;
+  
+  /* Cores de Texto e Ícones */
+  --color-text-dark: #333333;
+  --color-text-light: #ffffff;
+  --color-text-subtle: rgba(235, 227, 193, 0.856); /* Cor da sua label lateral */
+
+  /* Cores de Destaque e Efeitos */
+  --color-highlight: gold;
+  --color-shadow-light: #aaa;
+  --color-shadow-primary: orange;
+}
+
+/* Exemplo de Tema Escuro (Opcional - para modificações futuras)
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-light: #1e1e1e;
+      --color-text-dark: #ffffff;
+    }
+  }
+*/

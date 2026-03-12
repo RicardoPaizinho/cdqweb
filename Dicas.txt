@@ -1,0 +1,13 @@
+npm install
+instala as dependencias
+
+Inicie o Servidor de Desenvolvimento: Após a instalação das dependências:
+Bash
+npm run dev
+
+
+npm run build - cria a pasta dist com o projeto pronto pta usar no webview
+
+
+
+      

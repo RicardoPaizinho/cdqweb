@@ -1,0 +1,53 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  color: #e4e4e7;
+  background: #1a1d29;
+  line-height: 1.6;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+@font-face {
+  font-family: 'MinhaFonteLocal';
+  /* O caminho assume que o arquivo está em public/fonts/minha-fonte.ttf */
+  src: url('/fonts/DS-DIGI.TTF') format('truetype');
+ font-family: 'MinhaFonteLocal2';
+  /* O caminho assume que o arquivo está em public/fonts/minha-fonte.ttf */
+  src: url('/fonts/ZILLM.ttf') format('truetype');
+
+   font-family: 'DigitalFont';
+  /* fonte digital*/
+  src: url('/fonts/DS-DIGI.TTF') format('truetype');
+  font-family: 'Orbitron';
+  /*fonte do google parecem digitos modernos */
+  src: url('/fonts/Orbitron-VariableFont_wght.ttf') format('truetype');
+ 
+}
+#app {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
