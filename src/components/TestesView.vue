@@ -13,6 +13,8 @@ import NetworkTest from '@/components/tests/NetworkTest.vue';
 import MouseTest from '@/components/tests/MouseTest.vue';
 import BatteryTest from '@/components/tests/BatteryTest.vue';
 import UsbTest from '@/components/tests/UsbTest.vue';
+import AutoTest from '@/components/tests/AutoTest.vue';
+import Icons from '@/components/common/Icons.vue';
 
 const currentTest = ref(null);
 
@@ -37,16 +39,17 @@ const getResultClass = (testKey) => {
 };
 
 const testButtons = [
-  { key: 'lcd', title: 'LCD' },
-  { key: 'touchpad', title: 'Touchpad' },
-  { key: 'teclado', title: 'Teclado' },
-  { key: 'microfone', title: 'Microfone' },
-  { key: 'speaker', title: 'Speaker' },
-  { key: 'webcam', title: 'Webcam' },
-  { key: 'redes', title: 'Redes' },
-  { key: 'battery', title: 'Bateria' },
-  { key: 'joystick', title: 'Joystick' },
-  { key: 'usb', title: 'Portas USB' },
+  { key: 'lcd', title: 'LCD', icon: 'lcd' },
+  { key: 'touchpad', title: 'Touchpad', icon: 'touchpad' },
+  { key: 'teclado', title: 'Teclado', icon: 'keyboard' },
+  { key: 'microfone', title: 'Microfone', icon: 'mic' },
+  { key: 'speaker', title: 'Speaker', icon: 'speaker' },
+  { key: 'webcam', title: 'Webcam', icon: 'webcam' },
+  { key: 'redes', title: 'Redes', icon: 'network' },
+  { key: 'battery', title: 'Bateria', icon: 'about' }, // Usei 'about' como placeholder
+  { key: 'joystick', title: 'Joystick', icon: 'stress' }, // Usei 'stress' como placeholder
+  { key: 'usb', title: 'Portas USB', icon: 'usb' },
+  { key: 'auto', title: 'Teste Automático', icon: 'test-list' },
 ];
 </script>
 
@@ -61,45 +64,12 @@ const testButtons = [
           :class="getResultClass(test.key)"
           @click="startTest(test.key)"
         >
-          <template v-if="test.key === 'lcd'">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-          </template>
-
-          <template v-else-if="test.key === 'touchpad'">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="5" y="2" width="14" height="20" rx="7" ry="7" />
-              <line x1="12" y1="6" x2="12" y2="10" />
-            </svg>
-          </template>
-
-          <template v-else-if="test.key === 'usb'">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22V10M12 10L9 7M12 10L15 7M7 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm10 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM12 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-            </svg>
-          </template>
-
-          <template v-else-if="test.key === 'teclado'">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="5" width="20" height="14" rx="2" />
-              <path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M10 13h4" />
-            </svg>
-          </template>
-
-          <template v-else>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="m9 12 2 2 4-4" />
-            </svg>
-          </template>
+          <Icons :name="test.icon" size="48" class="test-icon-svg" />
 
           <h3>{{ test.title }}</h3>
           
           <p class="result-label" v-if="globalState.testResults[test.key]">
-            {{ globalState.testResults[test.key].result || globalState.testResults[test.key].label || 'Aguardando' }}
+            {{ globalState.testResults[test.key].result || 'Aguardando' }}
           </p>
         </button>
       </div>
@@ -116,6 +86,7 @@ const testButtons = [
       <MouseTest v-else-if="currentTest === 'touchpad'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
       <BatteryTest v-else-if="currentTest === 'battery'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
       <UsbTest v-else-if="currentTest === 'usb'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
+      <AutoTest v-else-if="currentTest === 'auto'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
     </div>
   </div>
 </template>
@@ -175,6 +146,22 @@ const testButtons = [
   color: var(--text-dim);
   /* #9ca3af */
 }
+/* Adicione ou ajuste esta classe para garantir que o ícone herde a cor do tema */
+.test-icon-svg {
+  color: var(--accent); /* Cor laranja que você gosta */
+  transition: color 0.3s ease;
+}
+
+/* Quando passar o teste, o ícone pode ficar verde */
+.result-pass .test-icon-svg {
+  color: var(--status-pass);
+}
+
+/* Quando falhar, o ícone fica vermelho */
+.result-fail .test-icon-svg {
+  color: var(--status-fail);
+}
+
 
 /* NOVOS ESTILOS PARA INDICAR O RESULTADO COM VARIÁVEIS */
 .result-pass {

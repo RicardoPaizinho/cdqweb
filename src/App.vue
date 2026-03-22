@@ -7,6 +7,7 @@ import ProgressBar4 from './components/progress/ProgressBar4.vue';
 import Icons from './components/common/Icons.vue';
 import TestesView from '@/components/TestesView.vue';
 import DiagsView from '@/components/diags/DiagsView.vue';
+import Relatorios from '@/components/Relatorios.vue';
 import LogoView from './components/diags/LogoView.vue'; // O novo teste
 import StepsProgress from '@/components/StepsProgress.vue';
 import ConfiguraView from '@/components/ConfiguraView.vue';
@@ -222,17 +223,7 @@ window.addEventListener('progress-style-changed', (event) => {
           </div>
 
           <div v-show="activeMenu === 'relatorios'" class="content-section">
-            <h2 class="section-title">Relatórios de Teste</h2>
-            <div class="report-list">
-              <div v-if="globalState.testReports.length === 0" class="info-card"><p>Nenhum teste realizado.</p></div>
-              <div v-for="report in globalState.testReports" :key="report.id" class="report-item">
-                <div class="report-info">
-                  <h3>{{ report.name }} - {{ report.date }}</h3>
-                  <p :style="{ color: report.status === 'Aprovado' ? '#4ecdc4' : '#ff4d4d' }">Status: {{ report.status }}</p>
-                </div>
-                <button class="btn-secondary">Detalhes</button>
-              </div>
-            </div>
+            <Relatorios @change-view="setActiveMenu" />
           </div>
 
           <div v-if="activeMenu === 'testes'" class="content-section">
@@ -284,12 +275,31 @@ window.addEventListener('progress-style-changed', (event) => {
 .app-container {
   width: 100%;
   height: 100vh;
-  background-color: var(--bg-app);
   color: var(--text-dim);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  /* --- O NOVO FUNDO TÉCNICO --- */
+/* CAMADAS DE FUNDO (A técnica de transparência) */
+  background-image: 
+    /* 1. Camada do Circuito: Carregamos a imagem original */
+    url('@/assets/circuito.png'),
+    /* 2. Camada de Cor: Usamos o gradiente que já tínhamos (luz no canto) */
+    radial-gradient(circle at bottom right, var(--bg-app) 40%, rgba(0, 0, 0, 0.7) 100%);
+
+  /* CONFIGURAÇÕES DO CIRCUITO */
+  background-position: bottom right, center; /* Posiciona o circuito no canto */
+  background-repeat: no-repeat, repeat;
+  background-size: 600px auto, 100% 100%; /* Ajuste o 600px para o tamanho desejado */
+
+   }
+
+.content-area {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto; /* Permite scroll apenas no conteúdo, mantendo o fundo fixo */
 }
 
 /* 2. CUSTOM TITLE BAR (Linha 1) */
