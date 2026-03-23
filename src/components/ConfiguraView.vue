@@ -1,14 +1,31 @@
 <template>
   <div class="content-section">
-    <h2 class="section-title">Aparência e Interface</h2>
-
+    
+    <div class="page-header">
+      <Icons name="settings" size="28" class="accent-icon" />
+      <h2 class="section-title">{{ globalState.t('titles.settings') }}</h2>
+    </div>
+    
     <div class="settings-card">
-      <div class="card-header">
-        <Icons name="settings" size="20" class="accent-icon" />
-        <h3>Galeria de Temas</h3>
+      <div class="card-title-row">
+        <Icons name="info" size="20" class="card-icon" />
+        <h3>{{ globalState.t('titles.language') || 'Idioma / Language' }}</h3>
       </div>
       
-      <p class="settings-desc">Escolha a paleta de cores principal para a interface.</p>
+      <p class="settings-desc">Selecione o idioma da interface técnica.</p>
+      
+      <select v-model="globalState.language" class="modern-select">
+        <option value="pt">Português (Brasil)</option>
+        <option value="en">English (US)</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+
+    <div class="settings-card mt-4">
+      <div class="card-title-row">
+        <Icons name="stress" size="20" class="card-icon" />
+        <h3>Galeria de Temas</h3>
+      </div>
 
       <div class="theme-grid">
         <button 
@@ -22,11 +39,7 @@
             <span class="color-bg" :style="{ backgroundColor: theme.color1 }"></span>
             <span class="color-acc" :style="{ backgroundColor: theme.color2 }"></span>
           </div>
-          
-          <div class="theme-details">
-            <span class="theme-label">{{ theme.name }}</span>
-          </div>
-
+          <span class="theme-label">{{ theme.name }}</span>
           <div class="check-mark" v-if="currentTheme === theme.id">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
@@ -35,12 +48,12 @@
     </div>
 
     <div class="settings-card mt-4">
-      <div class="card-header">
-       
+      <div class="card-title-row">
+        <Icons name="test-list" size="20" class="card-icon" />
         <h3>Estilo dos Indicadores</h3>
       </div>
       
-      <p class="settings-desc">Selecione o design das barras de progresso e sensores.</p>
+      <p class="settings-desc">Design das barras de progresso e sensores.</p>
 
       <div class="progress-selector">
         <button 
@@ -54,12 +67,14 @@
         </button>
       </div>
     </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import Icons from './common/Icons.vue'; //
+import { globalState } from '@/store.js';
+import Icons from './common/Icons.vue'; //  Importa o componente de ícones para usar nos botões de configuração
 
 // --- LÓGICA DE TEMAS ---
 const currentTheme = ref(localStorage.getItem('theme') || 'dark-orange-mode');
@@ -87,8 +102,8 @@ const currentProgressStyle = ref(localStorage.getItem('progress-style') || 'prog
 
 const progressStyles = [
   { id: 'progress-01', name: 'CLÁSSICO' },
-  { id: 'progress-02', name: 'GLOW' },
-  { id: 'progress-03', name: 'MINIMAL' },
+  { id: 'progress-02', name: 'HORIZONTAL' },
+  { id: 'progress-03', name: 'FLAME' },
   { id: 'progress-04', name: 'CYBER' },
 ];
 
@@ -110,20 +125,90 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mt-4 { margin-top: 1.5rem; }
+.content-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* Título da Página com Ícone */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  margin: 0; /* Remove margens padrão que desalinhariam o texto */
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.accent-icon {
+  color: var(--accent);
+}
+
+/* Título dentro dos Cards */
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.card-title-row h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-main);
+  font-weight: 400;
+}
+
+.card-icon {
+  color: var(--text-dim);
+}
 
 .settings-card {
   background-color: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1.2rem;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
 }
+
+.settings-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin: 0 0 15px 30px; /* Alinhado levemente à direita para começar abaixo do texto do título */
+}
+
+/* Ajuste do Select */
+.modern-select {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.modern-select:hover {
+  border-color: var(--accent);
+}
+
+/* Espaçamento extra entre cards */
+.mt-4 { margin-top: 0.8rem; }
 
 /* THEME GRID */
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 5px;
 }
 
 .theme-btn {
@@ -194,6 +279,11 @@ onMounted(() => {
   top: -5px;
   right: -5px;
   padding: 2px;
+}
+
+
+.modern-select:focus {
+  border-color: var(--accent);
 }
 
 .theme-label { font-size: 0.85rem; color: var(--text-main); }

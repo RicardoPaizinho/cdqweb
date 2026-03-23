@@ -1,57 +1,54 @@
+// src/store.js
 import { reactive } from 'vue';
+import { messages } from './locales/i18n.js';
 
 export const globalState = reactive({
-  // Controle de Navegação Global
-  // Isso permite que qualquer componente (como o GpuTests) troque a tela do App.vue
+  language: localStorage.getItem('app-lang') || 'pt',
   activeMenu: 'informacoes', 
-
-  // Estado dos Resultados dos Testes Individuais
+  
   testResults: {
-    lcd: { label: 'Testar cores e pixels', result: '' },
-    touchpad: { label: 'Testar botoes tp', result: '' },
-    teclado: { label: 'Testar botoes tp', result: '' },
-    microfone: { label: 'Teste Mic Loop e gravar', result: '' },
-    speaker: { label: 'Testar saída de áudio', result: '' },
-    webcam: { label: 'PASS', result: '' },
-    redes: { label: 'Wlan Bluettoth', result: '' },
-    battery: { label: 'charge & capacity', result: '' },
-    cpu: { label: 'Speed', result: '' },
-    ssd: { label: 'Fail', result: '' },
-    gpu: { label: 'Verificar', result: '' },
-    memoria: { label: 'Verificar RAM', result: '' },
-    joystick: { label: 'Pass', result: '' },
-    usb: { result: null, label: 'Aguardando dispositivos' }, 
+    lcd: { label: 'LCD', result: '' },
+    touchpad: { label: 'Touchpad', result: '' },
+    teclado: { label: 'Teclado', result: '' },
+    microfone: { label: 'Mic', result: '' },
+    speaker: { label: 'Audio', result: '' },
+    webcam: { label: 'Webcam', result: '' },
+    redes: { label: 'Network', result: '' },
+    battery: { label: 'Battery', result: '' },
+    joystick: { label: 'Joystick', result: '' }
   },
   
-  // Lista de Relatórios (Histórico da Sessão)
   testReports: [], 
 
-  /**
-   * Salva o resultado de um teste e gera um log no relatório
-   * @param {string} testKey - A chave do teste (ex: 'gpu')
-   * @param {string} status - O status (ex: 'Aprovado', 'Falhou')
-   */
+  // Função de Tradução que consome o arquivo i18n.js
+  t(path) {
+    const keys = path.split('.');
+    let translation = messages[this.language];
+    keys.forEach(key => {
+      translation = translation ? translation[key] : null;
+    });
+    return translation || path; 
+  },
+
+  setLanguage(lang) {
+    this.language = lang;
+    localStorage.setItem('app-lang', lang);
+  },
+
   saveResult(testKey, status) {
     if (this.testResults[testKey]) {
       this.testResults[testKey].result = status;
     }
 
-    const reportNames = {
-      teclado: 'Teclado', 
-      speaker: 'Alto-falantes', 
-      webcam: 'Câmera',
-      lcd: 'Tela LCD', 
-      microfone: 'Microfone', 
-      joystick: 'Controle/Joystick',
-      gpu: 'Placa de Vídeo (Benchmark)'
-    };
+    const hardwareName = this.t(`hardware.${testKey}`);
+    const reportStatus = status === 'PASS' ? this.t('status.approved') : this.t('status.rejected');
+    const locale = this.language === 'pt' ? 'pt-BR' : this.language === 'en' ? 'en-US' : 'es-ES';
 
-    // Adiciona ao topo da lista de relatórios
     this.testReports.unshift({
       id: Date.now(),
-      name: reportNames[testKey] || testKey.toUpperCase(),
-      status: status,
-      date: new Date().toLocaleString('pt-BR')
+      name: hardwareName,
+      status: reportStatus,
+      date: new Date().toLocaleString(locale)
     });
   }
 });

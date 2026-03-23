@@ -15,6 +15,7 @@ import Monitor from '@/components/Monitor.vue';
 import About from './components/About.vue';
 import { globalState } from './store.js';
 
+
 // --- ESTADOS DE UI ---
 const progress = ref(0);
 const fps = ref(0);
@@ -41,10 +42,10 @@ watch(activeMenu, (newMenu) => {
 });
 
 // --- DADOS DO SISTEMA (REFS) ---
-const serialNumber = ref('Carregando...');
-const modelName = ref('Carregando...');
+const serialNumber = ref(globalState.t('status.waiting')); 
+const modelName = ref(globalState.t('status.waiting'));
 const orderNumber = ref('ORD-000000');
-const fabricante = ref('Carregando...');
+const fabricante = ref(globalState.t('status.waiting'));
 const card_processador = ref('');
 const card_memoriaTotal = ref('');
 const card_armazenamento = ref([]);
@@ -172,37 +173,37 @@ window.addEventListener('progress-style-changed', (event) => {
         <nav class="sidebar-menu">
           <button class="menu-item" :class="{ active: activeMenu === 'informacoes' }" @click="setActiveMenu('informacoes')">
             <Icons name="info" size="32" class="menu-icon" />
-            <span v-if="leftSidebarExpanded" class="menu-text">Informações</span>
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.informacoes')}}</span>
           </button>
 
           <button class="menu-item" :class="{ active: activeMenu === 'relatorios' }" @click="setActiveMenu('relatorios')">
             <Icons name="save" size="32" class="menu-icon" />
-            <span v-if="leftSidebarExpanded" class="menu-text">Relatórios</span>
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.reports')}}</span>
           </button>
 
           <button class="menu-item" :class="{ active: activeMenu === 'testes' || activeMenu === 'LogoView' }" @click="setActiveMenu('testes')">
             <Icons name="test-list" size="32" class="menu-icon" />
-            <span v-if="leftSidebarExpanded" class="menu-text">Testes</span>
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.peripherals')}}</span>
           </button>
 
           <button class="menu-item" :class="{ active: activeMenu === 'Diags' }" @click="setActiveMenu('Diags')">
             <Icons name="stress" size="32" class="menu-icon" />
-            <span v-if="leftSidebarExpanded" class="menu-text">Diagnostics</span>
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.diagnosticos')}}</span>
           </button>
 
           <button class="menu-item" :class="{ active: activeMenu === 'monitor' }" @click="setActiveMenu('monitor')">
             <Icons name="monitor" size="32" class="menu-icon" />
-            <span v-if="leftSidebarExpanded" class="menu-text">Monitor</span>
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.monitor')}}</span>
           </button>
 
           <button class="menu-item" :class="{ active: activeMenu === 'configurar' }" @click="setActiveMenu('configurar')">
             <Icons name="settings" size="32" class="menu-icon" />
-            <span v-if="leftSidebarExpanded" class="menu-text">Configurações</span>
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.settings')}}</span>
           </button>
 
           <button class="menu-item" :class="{ active: isAboutOpen }" @click="isAboutOpen = true">
             <Icons name="about" size="32" />
-            <span v-if="leftSidebarExpanded" class="menu-text">Sobre</span>
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.about')}}</span>
           </button>
         </nav>
       </aside>
@@ -213,12 +214,12 @@ window.addEventListener('progress-style-changed', (event) => {
           <div v-if="activeMenu === 'informacoes'" class="content-section">
             <h2 class="section-title">{{ modelName }}</h2>
             <div class="info-grid">
-              <div class="info-card"><h3>Processador</h3><p>{{ card_processador }}</p></div>
-              <div class="info-card"><h3>Memória RAM</h3><p>{{ card_memoriaTotal }}</p></div>
-              <div class="info-card"><h3>Armazenamento</h3><p v-for="item in card_armazenamento" :key="item">{{ item }}</p></div>
-              <div class="info-card"><h3>Placa de Vídeo</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
-              <div class="info-card"><h3>Sistema</h3><p>{{ card_sistema }}</p></div>
-              <div class="info-card"><h3>LCD</h3><p>{{ card_lcd }}</p></div>
+              <div class="info-card"><h3>{{ globalState.t('hardware.processador') }}</h3><p>{{ card_processador }}</p></div>
+              <div class="info-card"><h3>{{ globalState.t('hardware.memoria') }}</h3><p>{{ card_memoriaTotal }}</p></div>
+              <div class="info-card"><h3>{{ globalState.t('hardware.armazenamento') }}</h3><p v-for="item in card_armazenamento" :key="item">{{ item }}</p></div>
+              <div class="info-card"><h3>{{ globalState.t('hardware.gpu') }}</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
+              <div class="info-card"><h3>{{ globalState.t('hardware.sistema') }}</h3><p>{{ card_sistema }}</p></div>
+              <div class="info-card"><h3>{{ globalState.t('hardware.lcd') }}</h3><p>{{ card_lcd }}</p></div>
             </div>
           </div>
 

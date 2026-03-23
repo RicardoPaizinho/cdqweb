@@ -1,0 +1,91 @@
+Date : 2026-03-22 18:39:44
+Directory : c:\Users\HP\Desktop\hardware-test-page\src
+Total : 51 files,  8217 codes, 61 comments, 1397 blanks, all 9675 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| vue        |         43 |      7,999 |         13 |      1,355 |      9,367 |
+| PostCSS    |          4 |        164 |         37 |         27 |        228 |
+| JavaScript |          2 |         47 |         10 |          9 |         66 |
+| XML        |          2 |          7 |          1 |          6 |         14 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                              | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                 |         51 |      8,217 |         61 |      1,397 |      9,675 |
+| . (Files)                                                                         |          3 |        621 |         10 |         93 |        724 |
+| assets                                                                            |          6 |        171 |         38 |         33 |        242 |
+| assets (Files)                                                                    |          3 |         54 |          4 |          9 |         67 |
+| assets\icons                                                                      |          1 |          6 |          1 |          5 |         12 |
+| assets\styles                                                                     |          2 |        111 |         33 |         19 |        163 |
+| components                                                                        |         42 |      7,425 |         13 |      1,271 |      8,709 |
+| components (Files)                                                                |          6 |      1,016 |          0 |        167 |      1,183 |
+| components\backs                                                                  |          7 |      1,800 |         12 |        332 |      2,144 |
+| components\common                                                                 |          1 |        110 |          0 |         22 |        132 |
+| components\diags                                                                  |          4 |        728 |          0 |        113 |        841 |
+| components\icons                                                                  |          5 |         46 |          1 |          5 |         52 |
+| components\progress                                                               |          4 |        595 |          0 |         92 |        687 |
+| components\tests                                                                  |         15 |      3,130 |          0 |        540 |      3,670 |
++-----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                                          | language   | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| c:\Users\HP\Desktop\hardware-test-page\src\App.vue                                | vue        |        574 |          0 |         84 |        658 |
+| c:\Users\HP\Desktop\hardware-test-page\src\assets\base.css                        | PostCSS    |         45 |          4 |          5 |         54 |
+| c:\Users\HP\Desktop\hardware-test-page\src\assets\icons\keyboard.svg              | XML        |          6 |          1 |          5 |         12 |
+| c:\Users\HP\Desktop\hardware-test-page\src\assets\logo.svg                        | XML        |          1 |          0 |          1 |          2 |
+| c:\Users\HP\Desktop\hardware-test-page\src\assets\main.css                        | PostCSS    |          8 |          0 |          3 |         11 |
+| c:\Users\HP\Desktop\hardware-test-page\src\assets\styles\theme.css                | PostCSS    |         99 |         16 |         15 |        130 |
+| c:\Users\HP\Desktop\hardware-test-page\src\assets\styles\variables.css            | PostCSS    |         12 |         17 |          4 |         33 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\About.vue                   | vue        |        150 |          0 |         23 |        173 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\ConfiguraView.vue           | vue        |        170 |          0 |         30 |        200 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\Monitor.vue                 | vue        |        263 |          0 |         35 |        298 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\Relatorios.vue              | vue        |        151 |          0 |         20 |        171 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\StepsProgress.vue           | vue        |        100 |          0 |         29 |        129 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\TestesView.vue              | vue        |        182 |          0 |         30 |        212 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\backs\App backup.vue        | vue        |        878 |         12 |        157 |      1,047 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\backs\BatteryTest2.vue      | vue        |        168 |          0 |         29 |        197 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\backs\GpuViewer 04-02.vue   | vue        |        113 |          0 |         29 |        142 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\backs\GpuViewer copy 2.vue  | vue        |        298 |          0 |         52 |        350 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\backs\GpuViewer.vue         | vue        |        207 |          0 |         34 |        241 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\backs\HelloWorld.vue        | vue        |         39 |          0 |          6 |         45 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\backs\LogoView copy.vue     | vue        |         97 |          0 |         25 |        122 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\common\Icons.vue            | vue        |        110 |          0 |         22 |        132 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\diags\DiagsView.vue         | vue        |        132 |          0 |         25 |        157 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\diags\EventLogAnalyzer.vue  | vue        |        193 |          0 |         23 |        216 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\diags\GpuTests.vue          | vue        |        171 |          0 |         22 |        193 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\diags\LogoView.vue          | vue        |        232 |          0 |         43 |        275 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\icons\IconCommunity.vue     | vue        |          7 |          0 |          1 |          8 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\icons\IconDocumentation.vue | vue        |          7 |          0 |          1 |          8 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\icons\IconEcosystem.vue     | vue        |          7 |          0 |          1 |          8 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\icons\IconSupport.vue       | vue        |          7 |          0 |          1 |          8 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\icons\IconTooling.vue       | vue        |         18 |          1 |          1 |         20 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\progress\ProgressBar1.vue   | vue        |        120 |          0 |         16 |        136 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\progress\ProgressBar2.vue   | vue        |        112 |          0 |         16 |        128 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\progress\ProgressBar3.vue   | vue        |        223 |          0 |         35 |        258 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\progress\ProgressBar4.vue   | vue        |        140 |          0 |         25 |        165 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\AutoTest.vue          | vue        |        231 |          0 |         29 |        260 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\BatteryTest.vue       | vue        |        168 |          0 |         29 |        197 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\CameraTest.vue        | vue        |        251 |          0 |         49 |        300 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\Joystick3dTest.vue    | vue        |        174 |          0 |         27 |        201 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\JoystickTest.vue      | vue        |        167 |          0 |         30 |        197 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\KeyboardTest.vue      | vue        |        232 |          0 |         37 |        269 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\LcdTest.vue           | vue        |        246 |          0 |         42 |        288 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\MicTest.vue           | vue        |        123 |          0 |         22 |        145 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\MicTestGrava.vue      | vue        |        245 |          0 |         44 |        289 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\MicTestLoop.vue       | vue        |        164 |          0 |         31 |        195 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\MicTestNotes.vue      | vue        |        274 |          0 |         51 |        325 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\MouseTest.vue         | vue        |        254 |          0 |         41 |        295 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\NetworkTest.vue       | vue        |        174 |          0 |         32 |        206 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\SpeakerTest.vue       | vue        |        250 |          0 |         48 |        298 |
+| c:\Users\HP\Desktop\hardware-test-page\src\components\tests\UsbTest.vue           | vue        |        177 |          0 |         28 |        205 |
+| c:\Users\HP\Desktop\hardware-test-page\src\main.js                                | JavaScript |          6 |          0 |          3 |          9 |
+| c:\Users\HP\Desktop\hardware-test-page\src\store.js                               | JavaScript |         41 |         10 |          6 |         57 |
+| Total                                                                             |            |      8,217 |         61 |      1,397 |      9,675 |
++-----------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
