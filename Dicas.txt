@@ -8,6 +8,9 @@ npm run dev
 
 npm run build - cria a pasta dist com o projeto pronto pta usar no webview
 
+para testar no celular ou outro pc porque por padrao ele bloqueia
+npm run dev -- --host
+
 
 
       

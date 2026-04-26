@@ -76,7 +76,7 @@ const createSparks = (step) => {
     const r = 78; 
     const x = centerX + r * Math.cos(rad);
     const y = centerY + r * Math.sin(rad);
-    const s = gsap.utils.random(2, 5);
+    const s = gsap.utils.random(2, 10);
 
     gsap.set(spark, { 
       attr: { x: x - s/2, y: y - s/2, width: s, height: s, fill: props.accentColor },
@@ -89,8 +89,8 @@ const createSparks = (step) => {
       duration: gsap.utils.random(0.7, 1.3),
       x: `+=${Math.cos(rad) * 10 + gsap.utils.random(-15, 15)}`,
       y: `+=${Math.sin(rad) * 10 + gsap.utils.random(30, 60)}`, // Gravidade
-      opacity: 0,
-      scale: 0,
+      opacity: 0.7,
+      scale: 0.3,
       ease: "power1.in",
       onComplete: () => spark.remove()
     });
@@ -98,9 +98,9 @@ const createSparks = (step) => {
 };
 
 watch(() => props.progressValue, (nv) => {
-  gsap.to(displayValue, { duration: 1, value: nv, ease: "power2.out" });
+  gsap.to(displayValue, { duration: 2, value: nv, ease: "power2.out" });
   gsap.to(tweenedSteps, {
-    duration: 1,
+    duration: 2,
     value: (nv / 100) * steps,
     ease: "power2.out",
     onUpdate: () => createSparks(tweenedSteps.value)

@@ -15,6 +15,7 @@ import BatteryTest from '@/components/tests/BatteryTest.vue';
 import UsbTest from '@/components/tests/UsbTest.vue';
 import AutoTest from '@/components/tests/AutoTest.vue';
 import Icons from '@/components/common/Icons.vue';
+import TouchScreen from '@/components/tests/TouchScreen.vue';
 
 const currentTest = ref(null);
 
@@ -49,6 +50,7 @@ const testButtons = [
   { key: 'battery', title: 'Bateria', icon: 'about' }, // Usei 'about' como placeholder
   { key: 'joystick', title: 'Joystick', icon: 'stress' }, // Usei 'stress' como placeholder
   { key: 'usb', title: 'Portas USB', icon: 'usb' },
+  { key: 'touchscreen', title: 'Tela de Toque', icon: 'touchscreen' },
   { key: 'auto', title: 'Teste Automático', icon: 'test-list' },
 ];
 </script>
@@ -86,6 +88,7 @@ const testButtons = [
       <MouseTest v-else-if="currentTest === 'touchpad'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
       <BatteryTest v-else-if="currentTest === 'battery'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
       <UsbTest v-else-if="currentTest === 'usb'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
+      <TouchScreen v-else-if="currentTest === 'touchscreen'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
       <AutoTest v-else-if="currentTest === 'auto'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
     </div>
   </div>

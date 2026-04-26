@@ -46,7 +46,12 @@ const serialNumber = ref(globalState.t('status.waiting'));
 const modelName = ref(globalState.t('status.waiting'));
 const orderNumber = ref('ORD-000000');
 const fabricante = ref(globalState.t('status.waiting'));
-const card_processador = ref('');
+const processador_Name = ref('Intel Core i5-6300U 2.40GHz');
+const processador_ClockSpeed = ref('teste');
+const processador_MaxClockSpeed = ref('teste');
+const processador_NumberOfCores = ref('teste');
+const processador_NumberOfLogicalProcessors = ref('teste');
+const processador_SerialNumber = ref('teste');
 const card_memoriaTotal = ref('');
 const card_armazenamento = ref([]);
 const card_placaVideo = ref([]);
@@ -66,7 +71,18 @@ function updatePCInfo(data) {
   if (!data) return;
   serialNumber.value = String(data.serialNumber || '');
   modelName.value = String(data.model || '');
-  card_processador.value = String(data.processador || '');
+  //processadorName.value = String(data.processadorName || '');
+  //processadorClockSpeed.value = String(data.processadorClockSpeed || '');
+  //processadorMaxClockSpeed.value = String(data.processadorMaxClockSpeed || '');
+
+ processador_Name.value = String(data.processador_Name || '');
+ processador_ClockSpeed.value = String(data.processador_ClockSpeed || '');
+ processador_MaxClockSpeed.value = String(data.processador_MaxClockSpeed || '');
+ processador_NumberOfCores.value = String(data.processador_NumberOfCores || '');
+ processador_NumberOfLogicalProcessors.value = String(data.processador_NumberOfLogicalProcessors || '');
+ processador_SerialNumber.value = String(data.processador_SerialNumber || '');
+
+
   card_memoriaTotal.value = String(data.memoria || '');
   card_armazenamento.value = Array.isArray(data.armazenamento) ? [...data.armazenamento] : [data.armazenamento];
   card_placaVideo.value = Array.isArray(data.placaVideo) ? [...data.placaVideo] : [data.placaVideo];
@@ -75,6 +91,16 @@ function updatePCInfo(data) {
   orderNumber.value = "os-123456";
   fabricante.value = String(data.systemFamily || '');
 }
+
+// No seu componente:
+const flippedCard = ref(null); // Armazena o ID do card virado
+
+const toggleFlip = (cardId) => {
+  // Se clicar no mesmo card, ele volta ao normal. Se clicar em outro, ele vira o novo.
+  flippedCard.value = flippedCard.value === cardId ? null : cardId;
+};
+
+// Exemplo de dados que viriam do seu wrapper C# / LHM
 
 function updatePerformance(cpu, memory, disk, realtime = null) {
   cpuUsage.value = Number(cpu) || 0;
@@ -214,7 +240,32 @@ window.addEventListener('progress-style-changed', (event) => {
           <div v-if="activeMenu === 'informacoes'" class="content-section">
             <h2 class="section-title">{{ modelName }}</h2>
             <div class="info-grid">
-              <div class="info-card"><h3>{{ globalState.t('hardware.processador') }}</h3><p>{{ card_processador }}</p></div>
+
+<div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'cpu' }" @click="toggleFlip('cpu')">
+  <div class="info-card-inner">
+    
+    <div class="info-card-front">
+      <h3>{{ globalState.t('hardware.processador') }}</h3>
+      <p>{{ processador_Name }}</p>
+      <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
+    </div>
+
+    <div class="info-card-back">
+      <h3>{{ processador_Name }}</h3>
+      <div class="details-list">
+        <p>CORES: {{  processador_NumberOfCores }}</p>
+        <p>THREADS: {{ processador_NumberOfLogicalProcessors }}</p>
+        <p>CLOCK: {{ processador_ClockSpeed }}GHz</p>
+         <p>Serial: {{ processador_SerialNumber }}</p>
+        <p>MaxClock: {{ processador_MaxClockSpeed }}GHz</p>
+       
+      </div>
+    </div>
+
+  </div>
+</div>
+
+             
               <div class="info-card"><h3>{{ globalState.t('hardware.memoria') }}</h3><p>{{ card_memoriaTotal }}</p></div>
               <div class="info-card"><h3>{{ globalState.t('hardware.armazenamento') }}</h3><p v-for="item in card_armazenamento" :key="item">{{ item }}</p></div>
               <div class="info-card"><h3>{{ globalState.t('hardware.gpu') }}</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
@@ -512,42 +563,6 @@ window.addEventListener('progress-style-changed', (event) => {
   margin: 0 auto;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
-}
-
-.info-card {
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.2rem;
-  transition: all 0.3s ease;
-}
-
-.info-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px var(--accent-glow);
-  border-color: var(--accent);
-}
-
-/* Estilo de Texto nos Cards */
-.info-card h3 {
-  font-size: 0.65rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  margin-bottom: 0.5rem;
-  opacity: 0.7;
-}
-
-.info-card p {
-  font-family: var(--font-tech);
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
 
 /* 6. SIDEBAR DIREITA & PROGRESSO */
 .right-sidebar {
@@ -655,5 +670,95 @@ window.addEventListener('progress-style-changed', (event) => {
   margin-bottom: 2rem;
   color: var(--text-main);
   font-weight: 700;
+}
+/* Layout da Grid (Mantido) */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Container de Perspectiva */
+.info-card-container {
+  perspective: 1000px;
+  cursor: pointer;
+  height: 140px; /* Ajuste para a altura desejada dos seus cards */
+}
+
+/* O elemento que rotaciona */
+.info-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+/* Gatilho da Rotação */
+.info-card-container.is-flipped .info-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Estilo Base das Faces (Unificando suas propriedades antigas) */
+.info-card-front, .info-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 12px;
+  padding: 1.2rem;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+/* Efeito Neon no Hover (Apenas na face frontal quando não virado) */
+.info-card-container:not(.is-flipped):hover .info-card-front {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px var(--accent-glow);
+  border-color: var(--accent);
+}
+
+/* Face Traseira (Verso) */
+.info-card-back {
+  transform: rotateY(180deg);
+  background-color: #121212; /* Um tom mais escuro para o verso */
+  border-color: var(--accent);
+  box-shadow: inset 0 0 15px var(--accent-glow); /* Brilho neon interno no verso */
+}
+
+/* Tipografia (Suas regras originais) */
+.info-card-front h3, .info-card-back h3 {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 0.5rem;
+  opacity: 0.7;
+}
+
+.info-card-front p {
+  font-family: var(--font-tech);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+/* Lista de Detalhes no Verso */
+.details-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.details-list p {
+  font-size: 0.75rem !important;
+  color: var(--accent) !important;
+  font-family: var(--font-tech);
 }
 </style>

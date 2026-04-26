@@ -96,13 +96,14 @@ const getResultClass = (key) => {
 <style scoped>
 .diagnostic-container { padding: 2rem; color: #fff; }
 
-.header-diag { margin-bottom: 2.5rem; }
+.header-diag { margin-bottom: 2.5rem; color: var(--text-dim);}
 .subtitle { color: var(--text-dim); font-size: 0.9rem; }
 
 .diag-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+ 
 }
 
 .diag-card {
@@ -127,7 +128,7 @@ const getResultClass = (key) => {
 
 .icon-wrapper { color: var(--accent); margin-bottom: 1rem; }
 
-.card-info h3 { font-size: 1.1rem; margin-bottom: 0.5rem; letter-spacing: 0.5px; }
+.card-info h3 { font-size: 1.2rem; margin-bottom: 0.5rem; letter-spacing: 0.5px; color: var(--accent) }
 .card-info p { font-size: 0.8rem; color: var(--text-dim); line-height: 1.4; }
 
 .card-footer {

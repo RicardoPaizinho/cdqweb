@@ -15,7 +15,9 @@ export const globalState = reactive({
     webcam: { label: 'Webcam', result: '' },
     redes: { label: 'Network', result: '' },
     battery: { label: 'Battery', result: '' },
-    joystick: { label: 'Joystick', result: '' }
+    joystick: { label: 'Joystick', result: '' },
+    usb: { label: 'USB', result: '' },
+    touchscreen: { label: 'Touchscreen', result: '' }
   },
   
   testReports: [], 

@@ -102,6 +102,9 @@ const isAllSystemOk = computed(() => {
   return Object.values(results.value).every(r => r.status === 'check');
 });
 
+const emit = defineEmits(['test-completed', 'test-cancelled']);
+const activeTest = ref(null);
+
 // FUNÇÃO GLOBAL - DEFINA UMA VEZ SÓ
 window.receiveAutoTestResults = (data) => {
   console.log("%c[C# -> VUE] DADOS CHEGARAM!", "color: #00ff88; font-weight: bold;", data);
