@@ -1,14 +1,14 @@
 <template>
   <div class="monitor-container">
     <div class="top-cards">
-      <div class="status-card">
+      <div class="status-card neon-card-cpu">
         <div class="card-accent cpu-color"></div>
         <div class="info">
           <div class="card-header-row">
             <label>{{ globalState.t('hardware.processador') }}</label>
             <div class="stat-min-max">
-              <span>Min: {{ cpuMin }}°</span>
-              <span>Max: {{ cpuMax }}°</span>
+              <span>MIN: {{ cpuMin }}°</span>
+              <span>MAX: {{ cpuMax }}°</span>
             </div>
           </div>
           <div class="value-row">
@@ -17,14 +17,14 @@
         </div>
       </div>
 
-      <div class="status-card">
+      <div class="status-card neon-card-gpu">
         <div class="card-accent gpu-color"></div>
         <div class="info">
           <div class="card-header-row">
             <label>{{ globalState.t('hardware.gpu') }}</label>
             <div class="stat-min-max">
-              <span>Min: {{ gpuMin }}°</span>
-              <span>Max: {{ gpuMax }}°</span>
+              <span>MIN: {{ gpuMin }}°</span>
+              <span>MAX: {{ gpuMax }}°</span>
             </div>
           </div>
           <div class="value-row">
@@ -33,21 +33,21 @@
         </div>
       </div>
 
-      <div class="status-card">
+      <div class="status-card neon-card-ssd">
         <div class="card-accent ssd-color"></div>
         <div class="info">
-          <label>{{ globalState.t('hardware.armazenamento') }} (Saúde: {{ storageLife }}%)</label>
+          <label>{{ globalState.t('hardware.armazenamento') }}</label>
           <div class="value">{{ storageTemp }}°C</div>
+          <span class="health-label neon-text-ssd">VIDA ÚTIL: {{ storageLife }}%</span>
         </div>
       </div>
 
-      <div class="status-card battery-card">
+      <div class="status-card battery-card neon-card-bat">
         <div class="battery-visual">
           <div class="battery-body">
-            <div class="battery-liquid" :style="{ height: batteryLevel + '%' }">
+            <div class="battery-liquid" :style="{ height: batteryLevel + '%', background: getBatteryColor() }">
               <div class="liquid-wave-wrapper">
                 <div class="liquid-wave wave-one"></div>
-                <div class="liquid-wave wave-two"></div>
               </div>
             </div>
           </div>
@@ -56,17 +56,18 @@
         <div class="info">
           <label>{{ globalState.t('hardware.battery') }}</label>
           <div class="value">{{ batteryLevel }}%</div>
-          <span class="health-label">Saúde: {{ batteryHealth }}%</span>
+          <span class="health-label neon-text-bat">SAÚDE: {{ batteryHealth }}%</span>
         </div>
       </div>
     </div>
 
-    <div class="chart-section neon-border">
+    <div class="chart-section neon-border-main">
       <header class="chart-header">
-        <h3 class="tech-font">{{ globalState.t('titles.monitor') }} - HISTÓRICO DE SENSORES</h3>
+        <h3 class="tech-font">{{ globalState.t('titles.monitor') }} - REALTIME TELEMETRY</h3>
         <div class="chart-legend">
           <span class="legend-item"><i class="dot cpu-bg"></i> CPU</span>
           <span class="legend-item"><i class="dot gpu-bg"></i> GPU</span>
+          <span class="legend-item"><i class="dot ssd-bg"></i> DISK</span>
         </div>
       </header>
 
@@ -88,118 +89,134 @@ import {
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, Filler, TimeScale);
 
-// Estados Reativos
+// Estados
 const cpuTemp = ref(0), cpuMin = ref(100), cpuMax = ref(0);
 const gpuTemp = ref(0), gpuMin = ref(100), gpuMax = ref(0);
-const storageTemp = ref(0), storageLife = ref(0);
-const batteryLevel = ref(0), batteryHealth = ref(0);
+const storageTemp = ref(0), storageLife = ref('---');
+const batteryLevel = ref(0), batteryHealth = ref('---');
 
-// Função para criar gradiente dinâmico
-const createGradient = (ctx, color1, color2) => {
-  const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-  gradient.addColorStop(0, color1);
-  gradient.addColorStop(1, color2);
-  return gradient;
+const getBatteryColor = () => {
+  if (batteryLevel.value > 20) return 'linear-gradient(to top, #00ff88, #00d2ff)';
+  return 'linear-gradient(to top, #ff4b2b, #ff416c)';
 };
 
+// Configuração do Gráfico Neon
 const chartData = shallowReactive({
   datasets: [
     {
       label: 'CPU',
       data: [],
       borderColor: '#ff4b2b',
-      borderWidth: 3,
+      shadowColor: '#ff4b2b',
+      borderWidth: 2,
       tension: 0.4,
       pointRadius: 0,
       fill: true,
       backgroundColor: (context) => {
-        const { ctx, chartArea } = context.chart;
-        if (!chartArea) return;
-        return createGradient(ctx, 'rgba(255, 75, 43, 0.2)', 'rgba(255, 75, 43, 0)');
-      },
+        const ctx = context.chart.ctx;
+        const g = ctx.createLinearGradient(0, 0, 0, 300);
+        g.addColorStop(0, 'rgba(255, 75, 43, 0.15)');
+        g.addColorStop(1, 'rgba(255, 75, 43, 0)');
+        return g;
+      }
     },
     {
       label: 'GPU',
       data: [],
       borderColor: '#00d2ff',
-      borderWidth: 3,
+      shadowColor: '#00d2ff',
+      borderWidth: 2,
       tension: 0.4,
       pointRadius: 0,
       fill: true,
       backgroundColor: (context) => {
-        const { ctx, chartArea } = context.chart;
-        if (!chartArea) return;
-        return createGradient(ctx, 'rgba(0, 210, 255, 0.2)', 'rgba(0, 210, 255, 0)');
-      },
+        const ctx = context.chart.ctx;
+        const g = ctx.createLinearGradient(0, 0, 0, 300);
+        g.addColorStop(0, 'rgba(0, 210, 255, 0.15)');
+        g.addColorStop(1, 'rgba(0, 210, 255, 0)');
+        return g;
+      }
+    },
+    {
+      label: 'DISK',
+      data: [],
+      borderColor: '#ffca28',
+      shadowColor: '#ffca28',
+      borderWidth: 2,
+      tension: 0.4,
+      pointRadius: 0,
+      fill: true,
+      backgroundColor: (context) => {
+        const ctx = context.chart.ctx;
+        const g = ctx.createLinearGradient(0, 0, 0, 300);
+        g.addColorStop(0, 'rgba(255, 202, 40, 0.1)');
+        g.addColorStop(1, 'rgba(255, 202, 40, 0)');
+        return g;
+      }
     }
   ]
 });
 
 const chartOptions = {
   responsive: true,
-  maintainAspectRatio: true,
-  animation: { duration: 800 }, // '0' para performance em tempo real, ou '800' para suavidade
+  maintainAspectRatio: false,
+  resizeDelay: 50,
+  elements: {
+    line: {
+      borderCapStyle: 'round',
+      shadowBlur: 10 // Efeito Neon nas linhas
+    }
+  },
   scales: {
     y: { 
-      min: 0, max: 100,
-      grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
-      ticks: { color: '#666', font: { size: 10, family: 'Orbitron' } }
+      min: 20, max: 100, // Focado em temperatura de trabalho
+      grid: { color: 'rgba(255, 255, 255, 0.03)' },
+      ticks: { color: '#444', font: { family: 'Orbitron', size: 9 } }
     },
     x: {
       type: 'time',
-      time: {
-        unit: 'minute',
-        stepSize: 5,
-        displayFormats: { minute: 'HH:mm' }
-      },
+      time: { unit: 'second', displayFormats: { second: 'HH:mm:ss' } },
       grid: { display: false },
-      ticks: { color: '#666', font: { size: 10 } }
+      ticks: { display: false } // Limpa o visual
     }
   },
   plugins: { legend: { display: false } }
 };
 
-const updateUI = (data) => {
-  const r = data.realtime; 
-  if (!r) return;
-
-  const now = new Date();
-
-  cpuTemp.value = Math.round(r.cpuTemp);
-  gpuTemp.value = Math.round(r.gpuTemp);
-  storageTemp.value = Math.round(r.storageTemp);
-  storageLife.value = Math.round(r.storageLife);
-  batteryLevel.value = Math.round(r.batteryLevel);
-  batteryHealth.value = Math.round(r.batteryHealth);
-
-  // Lógica de Min/Max
-  if (cpuTemp.value > 0) {
-    cpuMin.value = Math.min(cpuMin.value === 0 ? 100 : cpuMin.value, cpuTemp.value);
-    cpuMax.value = Math.max(cpuMax.value, cpuTemp.value);
-  }
-  if (gpuTemp.value > 0) {
-    gpuMin.value = Math.min(gpuMin.value === 0 ? 100 : gpuMin.value, gpuTemp.value);
-    gpuMax.value = Math.max(gpuMax.value, gpuTemp.value);
-  }
-
-  // Push para o gráfico (Time-series)
-  chartData.datasets[0].data.push({ x: now, y: cpuTemp.value });
-  chartData.datasets[1].data.push({ x: now, y: gpuTemp.value });
-
-  // Mantém os últimos 100 pontos para histórico
-  if (chartData.datasets[0].data.length > 100) {
-    chartData.datasets[0].data.shift();
-    chartData.datasets[1].data.shift();
-  }
-  
-  chartData.datasets = [...chartData.datasets];
-};
-
 const handleMessage = (event) => {
-  try {
-    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-    if (data.type === "performanceData") updateUI(data);
-  } catch (e) { console.error("Erro no processamento de dados performance", e); }
+  const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+  
+  // 1. DADOS ESTÁTICOS (Enviados uma única vez)
+  if (data.type === "pcInfo") {
+    storageLife.value = data.storageLife;
+    batteryHealth.value = data.batteryHealth;
+  }
+
+  // 2. DADOS DINÂMICOS
+  if (data.type === "performanceData") {
+    const r = data.realtime;
+    const now = new Date();
+
+    cpuTemp.value = Math.round(r.cpuTemp);
+    gpuTemp.value = Math.round(r.gpuTemp);
+    storageTemp.value = Math.round(r.storageTemp);
+    batteryLevel.value = Math.round(r.batteryLevel);
+
+    // Min/Max
+    if (cpuTemp.value > 0) {
+      cpuMin.value = Math.min(cpuMin.value === 0 ? 100 : cpuMin.value, cpuTemp.value);
+      cpuMax.value = Math.max(cpuMax.value, cpuTemp.value);
+    }
+
+    // Atualiza Gráfico
+    const updates = [cpuTemp.value, gpuTemp.value, storageTemp.value];
+    chartData.datasets.forEach((dataset, i) => {
+      dataset.data.push({ x: now, y: updates[i] });
+      if (dataset.data.length > 40) dataset.data.shift();
+    });
+    
+    chartData.datasets = [...chartData.datasets];
+  }
 };
 
 onMounted(() => {
@@ -214,72 +231,95 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  height: 100%;
-  padding: 10px;
+  height: 100vh;
+  padding: 15px;
+ /* background: radial-gradient(circle at top right, #0a0b1004, #00000009); */
 }
 
 .top-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 15px;
 }
 
 .status-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 15px;
+  background: rgba(20, 20, 25, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 18px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Efeitos Neon Individuais */
+.neon-card-cpu:hover { border-color: #ff4b2b; box-shadow: 0 0 20px rgba(255, 75, 43, 0.2); }
+.neon-card-gpu:hover { border-color: #00d2ff; box-shadow: 0 0 20px rgba(0, 210, 255, 0.2); }
+.neon-card-ssd:hover { border-color: #ffca28; box-shadow: 0 0 20px rgba(255, 202, 40, 0.2); }
+.neon-card-bat:hover { border-color: #00ff88; box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
+
+.info label {
+  font-size: 0.6rem;
+  color: #666;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.info .value {
+  font-size: 2.2rem;
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  text-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.health-label {
+  font-size: 0.7rem;
+  font-weight: bold;
+  margin-top: 8px;
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+}
+
+.neon-text-ssd { color: #ffca28; text-shadow: 0 0 5px rgba(255, 202, 40, 0.5); }
+.neon-text-bat { color: #00ff88; text-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
+
+/* Seção do Gráfico */
+
+
+.neon-border-main {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 2px rgba(255,255,255,0.1);
+}
+
+.legend-item {
+  font-size: 0.7rem;
+  color: #888;
+  margin-left: 15px;
+  font-family: 'Orbitron';
+}
+
+.ssd-bg { background: #ffca28; box-shadow: 0 0 10px #ffca28; }
+.cpu-bg { background: #ff4b2b; box-shadow: 0 0 10px #ff4b2b; }
+.gpu-bg { background: #00d2ff; box-shadow: 0 0 10px #00d2ff; }
+
+.chart-wrapper {
+  position: relative; /* Obrigatório para o Chart.js responsivo */
+  flex: 1;            /* Faz o gráfico ocupar o espaço restante */
+  min-height: 0;      /* Importante: impede que o flex-item cresça além do container */
+  height: 100%;       /* Ocupa a altura do pai (.chart-section) */
+  width: 100%;
+}
+
+.chart-section {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  position: relative;
-  overflow: hidden;
+  flex-direction: column;
+  background: #0f101628;
+  border-radius: 20px;
+  padding: 20px;
+    border: 1px solid var(--accent);
+  
+  
+  /* Defina uma altura fixa ou máxima para a seção do gráfico */
+  height: 330px; 
+  overflow: hidden; /* Garante que nada saia dos limites */
 }
-
-.card-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.cpu-color { background: #ff4b2b; box-shadow: 0 0 10px #ff4b2b; }
-.gpu-color { background: #00d2ff; box-shadow: 0 0 10px #00d2ff; }
-.ssd-color { background: #ffca28; }
-
-.card-header-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
-.stat-min-max { font-size: 0.65rem; color: #888; display: flex; flex-direction: column; text-align: right; }
-
-.info label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-.info .value { font-size: 1.8rem; font-weight: bold; color: #fff; font-family: 'Orbitron', sans-serif; }
-
-/* BATERIA VISUAL */
-.battery-visual { position: relative; width: 28px; height: 45px; }
-.battery-body { 
-  width: 100%; height: 100%; border: 2px solid rgba(255,255,255,0.2); 
-  border-radius: 4px; overflow: hidden; position: relative;
-}
-.battery-liquid {
-  position: absolute; bottom: 0; width: 100%;
-  background: linear-gradient(to top, #00ff88, #00d2ff);
-  transition: height 0.5s ease;
-}
-.battery-tip { 
-  position: absolute; top: -4px; left: 50%; transform: translateX(-50%); 
-  width: 10px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px;
-}
-
-/* GRÁFICO */
-.chart-section { 
-  background: rgba(0, 0, 0, 0.2); 
-  border: 1px solid rgba(255,255,255,0.05); 
-  border-radius: 12px; 
-  padding: 20px; 
-  flex-grow: 1; 
-}
-.neon-border { box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.02); }
-.chart-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
-.tech-font { color: var(--accent, #00d2ff); font-size: 0.8rem; letter-spacing: 1px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-.cpu-bg { background: #ff4b2b; }
-.gpu-bg { background: #00d2ff; }
-
-.chart-wrapper { height: 260px; width: 100%; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
-
-.health-label { font-size: 0.65rem; color: #666; margin-top: 4px; display: block; }
 </style>

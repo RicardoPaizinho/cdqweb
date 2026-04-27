@@ -5,9 +5,14 @@
     <div class="gauge-relative">
       <svg :viewBox="`0 0 ${viewSize} ${viewSize}`" class="progress-svg">
         <defs>
-          <filter id="p-glow" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="1.5" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          <filter id="p-glow" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation="1.8" result="blur1" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur2" />
+            <feMerge>
+              <feMergeNode in="blur2" />
+              <feMergeNode in="blur1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
           </filter>
         </defs>
 
@@ -15,8 +20,9 @@
           <rect 
             v-for="i in steps" :key="'bg-'+i"
             :x="centerX - rectW/2" :y="10" :width="rectW" :height="rectH"
-            fill="rgba(255,255,255,0.08)"
+            fill="rgba(255,255,255,0.05)"
             :transform="`rotate(${(i-1) * (360/steps)}, ${centerX}, ${centerY})`"
+            rx="2"
           />
         </g>
 
@@ -26,10 +32,11 @@
             :x="centerX - rectW/2" :y="10" :width="rectW" :height="rectH"
             :fill="accentColor"
             :transform="`rotate(${(i-1) * (360/steps)}, ${centerX}, ${centerY})`"
+            rx="2"
           />
         </g>
 
-        <g ref="particlesGroup" filter="url(#p-glow)"></g>
+        <g ref="particlesGroup" filter="url(#p-glow)" class="particles-layer"></g>
       </svg>
 
       <div class="center-content">
@@ -50,14 +57,15 @@ const props = defineProps({
   progressValue: { type: Number, default: 0 },
   size: { type: Number, default: 150 },
   accentColor: { type: String, default: 'var(--accent)' }
+ // accentColor: { type: String, default: '#00d2ff' } // Fallback para ciano neon
 });
 
 const steps = 50; 
 const viewSize = 200;
 const centerX = 100;
 const centerY = 100;
-const rectW = 5; 
-const rectH = 15;
+const rectW = 4; 
+const rectH = 14;
 
 const displayValue = ref(0);
 const tweenedSteps = ref(0);
@@ -66,44 +74,53 @@ const particlesGroup = ref(null);
 const createSparks = (step) => {
   if (!particlesGroup.value || step <= 0) return;
 
-  for (let i = 0; i < 4; i++) {
-    const spark = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  // Criação de 3 fragmentos por atualização de passo
+  for (let i = 0; i < 3; i++) {
+    const spark = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     
     const angle = (step * (360/steps)) - 90;
     const rad = angle * (Math.PI / 180);
     
-    // Raio 78 alinha perfeitamente com o rect y=10 e h=15
-    const r = 78; 
+    // Posicionamento levemente externo ao aro
+    const r = 88; 
     const x = centerX + r * Math.cos(rad);
     const y = centerY + r * Math.sin(rad);
-    const s = gsap.utils.random(2, 10);
+    
+    const size = gsap.utils.random(1.2, 3.2);
 
     gsap.set(spark, { 
-      attr: { x: x - s/2, y: y - s/2, width: s, height: s, fill: props.accentColor },
-      opacity: 1
+      attr: { cx: x, cy: y, r: size, fill: props.accentColor },
+      style: `mix-blend-mode: screen; filter: drop-shadow(0 0 3px ${props.accentColor});`
     });
 
     particlesGroup.value.appendChild(spark);
 
+    // Física: Explosão radial + Gravidade
     gsap.to(spark, {
-      duration: gsap.utils.random(0.7, 1.3),
-      x: `+=${Math.cos(rad) * 10 + gsap.utils.random(-15, 15)}`,
-      y: `+=${Math.sin(rad) * 10 + gsap.utils.random(30, 60)}`, // Gravidade
-      opacity: 0.7,
-      scale: 0.3,
-      ease: "power1.in",
+      duration: gsap.utils.random(0.7, 1.4),
+      x: Math.cos(rad) * gsap.utils.random(25, 50), // Direção da explosão
+      y: Math.sin(rad) * gsap.utils.random(25, 50) + 40, // Queda (gravidade)
+      opacity: 0,
+      scale: 0,
+      ease: "power2.out",
       onComplete: () => spark.remove()
     });
   }
 };
 
 watch(() => props.progressValue, (nv) => {
-  gsap.to(displayValue, { duration: 2, value: nv, ease: "power2.out" });
+  // Animação do número
+  gsap.to(displayValue, { duration: 1.5, value: nv, ease: "power2.out" });
+  
+  // Animação dos degraus e trigger das faíscas
   gsap.to(tweenedSteps, {
-    duration: 2,
+    duration: 1.5,
     value: (nv / 100) * steps,
     ease: "power2.out",
-    onUpdate: () => createSparks(tweenedSteps.value)
+    onUpdate: () => {
+      // Só cria faíscas se houver movimento significativo
+      if (Math.random() > 0.3) createSparks(tweenedSteps.value);
+    }
   });
 }, { immediate: true });
 </script>
@@ -117,12 +134,13 @@ watch(() => props.progressValue, (nv) => {
 }
 
 .gauge-label {
-  font-family: var(--font-tech);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-dim);
-  margin-bottom: 5px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #666;
+  margin-bottom: 8px;
   text-transform: uppercase;
+  letter-spacing: 2px;
 }
 
 .gauge-relative {
@@ -135,31 +153,48 @@ watch(() => props.progressValue, (nv) => {
 }
 
 .progress-svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
+  width: 110%; /* Ligeiramente maior para não cortar brilhos */
+  height: 110%;
+  overflow: visible !important;
+}
+
+.active-group {
+  /* Brilho principal da barra ativa */
+  filter: drop-shadow(0 0 5px var(--accent, currentColor));
 }
 
 .center-content {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -40%); /* Ajuste leve para compensar o label no topo */
+  transform: translate(-50%, -50%);
   text-align: center;
   pointer-events: none;
 }
 
 .gauge-value {
-  font-family: var(--font-tech);
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   line-height: 1;
+  font-family: 'Orbitron', sans-serif;
+  /* Efeito de profundidade no texto */
   filter: drop-shadow(0 0 10px currentColor);
+  transition: color 0.3s ease;
 }
 
-.gauge-value small { font-size: 0.9rem; opacity: 0.8; }
+.gauge-value small { 
+  font-size: 1rem; 
+  margin-left: 2px;
+  opacity: 0.6; 
+}
 
-.active-group {
-  filter: drop-shadow(0 0 6px var(--accent));
+.particles-layer {
+  pointer-events: none;
+}
+
+/* Animação sutil de pulso no centro quando o valor é alto */
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  100% { transform: translate(-50%, -50%) scale(1.05); }
 }
 </style>

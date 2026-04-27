@@ -186,20 +186,48 @@ onMounted(() => {
 
 /* Ajuste do Select */
 .modern-select {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(20, 20, 25, 0.9); /* Fundo sólido para evitar transparência nos itens */
   color: var(--text-main);
   border: 1px solid var(--border);
-  padding: 8px;
+  padding: 8px 12px;
   border-radius: 8px;
   width: 100%;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.3s;
+  transition: all 0.3s ease;
+  
+  /* Remove a seta padrão para podermos customizar se desejar */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  
+  /* Adiciona uma seta customizada via background-image (opcional) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
 }
 
-.modern-select:hover {
+.modern-select:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
+
+/* Estilização das opções (O SEGREDO ESTÁ AQUI) */
+.modern-select option {
+  background-color: #1a1a1a; /* Cor de fundo escura sólida */
+  color: #ffffff;            /* Cor do texto */
+  padding: 10px;
+}
+
+/* Hover e seleção (funciona melhor em alguns navegadores que outros) */
+.modern-select option:hover,
+.modern-select option:checked {
+  background-color: var(--accent) !important;
+  color: #000;
+}
+
+
+
 
 /* Espaçamento extra entre cards */
 .mt-4 { margin-top: 0.8rem; }

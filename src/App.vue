@@ -52,6 +52,11 @@ const processador_MaxClockSpeed = ref('teste');
 const processador_NumberOfCores = ref('teste');
 const processador_NumberOfLogicalProcessors = ref('teste');
 const processador_SerialNumber = ref('teste');
+const sistema = ref('teste');
+const sistemaKey = ref('AAAA-HHHHH-ASDSD-DDDFD-KKKKK');
+const sistemaBuild = ref('teste');
+const sistemaVersion = ref('teste');
+
 const card_memoriaTotal = ref('');
 const card_armazenamento = ref([]);
 const card_placaVideo = ref([]);
@@ -62,6 +67,7 @@ const card_lcd = ref('');
 const cpuUsage = ref(0);
 const memoryUsage = ref(0);
 const diskValue = ref(0);
+const diskTemp = ref(0);
 const cpuTemp = ref(0);
 const gpuTemp = ref(0);
 const batteryLevel = ref(0);
@@ -82,6 +88,9 @@ function updatePCInfo(data) {
  processador_NumberOfLogicalProcessors.value = String(data.processador_NumberOfLogicalProcessors || '');
  processador_SerialNumber.value = String(data.processador_SerialNumber || '');
 
+ sistema.value = String(data.system || '');
+ sistemaBuild.value = String(data.systemBuild || '');
+ sistemaVersion.value = String(data.systemVersion || '');
 
   card_memoriaTotal.value = String(data.memoria || '');
   card_armazenamento.value = Array.isArray(data.armazenamento) ? [...data.armazenamento] : [data.armazenamento];
@@ -109,6 +118,7 @@ function updatePerformance(cpu, memory, disk, realtime = null) {
   if (realtime) {
     cpuTemp.value = Number(realtime.cpuTemp) || 0;
     gpuTemp.value = Number(realtime.gpuTemp) || 0;
+    diskTemp.value = Number(realtime.diskTemp) || 0;
     batteryLevel.value = Math.round(Number(realtime.batteryLevel)) || 0;
   }
 }
@@ -262,8 +272,33 @@ window.addEventListener('progress-style-changed', (event) => {
       </div>
     </div>
 
+    
+
   </div>
 </div>
+
+<div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'system' }" @click="toggleFlip('system')">
+  <div class="info-card-inner">
+    
+    <div class="info-card-front">
+      <h3>{{ globalState.t('hardware.sistema') }}</h3>
+      <p>{{ sistema }}</p>
+      <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
+    </div>
+
+    <div class="info-card-back">
+      <h3>{{ sistema }}</h3>
+      <div class="details-list">
+        <p>Sistema: {{ sistema }}</p>
+        <p>Build: {{ sistemaBuild }}</p>
+        <p>Version: {{ sistemaVersion }}</p>
+        <p>Chave: {{ sistemaKey }}</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 
              
               <div class="info-card"><h3>{{ globalState.t('hardware.memoria') }}</h3><p>{{ card_memoriaTotal }}</p></div>
