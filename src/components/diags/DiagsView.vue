@@ -8,6 +8,7 @@ import { globalState } from '@/store.js';
 //import DiskTest from '@/components/diag/DiskTest.vue';
 import GpuTests from '@/components/diags/GpuTests.vue'; // Seu LogoView/Unity vai aqui
 import EventLogAnalyzer from '@/components/diags/EventLogAnalyzer.vue';
+import SmartTest from '@/components/diags/SmartTest.vue';
 
 const currentDiag = ref(null);
 
@@ -25,6 +26,7 @@ const diagButtons = [
   { key: 'memoria', title: 'RAM Stress', desc: 'Verificação de endereçamento e escrita--' },
   { key: 'gpu', title: 'GPU Stress', desc: 'Benchmark 3D e Estabilidade Térmica' },
   { key: 'ssd', title: 'Disk I/O', desc: 'Velocidade de leitura e escrita sequencial' },
+  { key: 'smart', title: 'SMART Test', desc: 'Análise de saúde do disco rígido' },
   { key: 'events', title: 'Event Log', desc: 'Analisador de erros e BSOD (Event Viewer)' },
 ];
 
@@ -86,6 +88,7 @@ const getResultClass = (key) => {
       <CpuStress v-if="currentDiag === 'cpu'" @completed="closeDiag" />
       <RamStress v-else-if="currentDiag === 'memoria'" @completed="closeDiag" />
       <DiskTest v-else-if="currentDiag === 'ssd'" @completed="closeDiag" />
+      <SmartTest v-else-if="currentDiag === 'smart'" @completed="closeDiag" />
       <GpuTests v-else-if="currentDiag === 'gpu'" @completed="closeDiag" />
       <EventLogAnalyzer v-else-if="currentDiag === 'events'" @completed="closeDiag" />
     </div>

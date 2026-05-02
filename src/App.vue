@@ -52,10 +52,12 @@ const processador_MaxClockSpeed = ref('teste');
 const processador_NumberOfCores = ref('teste');
 const processador_NumberOfLogicalProcessors = ref('teste');
 const processador_SerialNumber = ref('teste');
-const sistema = ref('teste');
+
+const sistema = ref(' ');
 const sistemaKey = ref('AAAA-HHHHH-ASDSD-DDDFD-KKKKK');
 const sistemaBuild = ref('teste');
 const sistemaVersion = ref('teste');
+const sistemaArquitetura = ref('teste');
 
 const card_memoriaTotal = ref('');
 const card_armazenamento = ref([]);
@@ -91,6 +93,8 @@ function updatePCInfo(data) {
  sistema.value = String(data.system || '');
  sistemaBuild.value = String(data.systemBuild || '');
  sistemaVersion.value = String(data.systemVersion || '');
+ sistemaKey.value = String(data.systemKey || '');
+ sistemaArquitetura.value = String(data.systemArchitecture || '');
 
   card_memoriaTotal.value = String(data.memoria || '');
   card_armazenamento.value = Array.isArray(data.armazenamento) ? [...data.armazenamento] : [data.armazenamento];
@@ -289,10 +293,10 @@ window.addEventListener('progress-style-changed', (event) => {
     <div class="info-card-back">
       <h3>{{ sistema }}</h3>
       <div class="details-list">
-        <p>Sistema: {{ sistema }}</p>
+        <p>Architecture: {{ sistemaArquitetura }}</p>
         <p>Build: {{ sistemaBuild }}</p>
+        <p>Key: {{ sistemaKey }}</p>
         <p>Version: {{ sistemaVersion }}</p>
-        <p>Chave: {{ sistemaKey }}</p>
       </div>
     </div>
 
