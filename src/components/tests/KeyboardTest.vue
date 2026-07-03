@@ -44,22 +44,24 @@ const getKeyStatus = (code) => {
   return '';
 };
 
-// Mapeia mensagens do Hook C# (Teclas Bloqueadas)
-const handleNativeMessage = (event) => {
-  const data = event.data;
-  if (data.type === 'specialKey') {
-    let code = '';
-    if (data.code === 91) code = 'MetaLeft';
-    if (data.code === 92) code = 'MetaRight';
-    if (data.code === 95) code = 'Sleep';
+// Mapeia os dados vindo do evento customizado do navegador (Long Polling do App.vue)
+const handleNativeKey = (event) => {
+  const vkCode = event.detail; // Recebe o número puro da tecla (ex: 91)
+  let code = '';
+  
+  if (vkCode === 91) code = 'MetaLeft';
+  if (vkCode === 92) code = 'MetaRight';
+  if (vkCode === 95) code = 'Sleep';
 
-    if (code) {
-      activeKeys.value.add(code);
-      testedKeys.value.add(code);
-      currentKey.code = code;
-      if (!historyArray.value.includes(code)) historyArray.value.push(code);
-      setTimeout(() => activeKeys.value.delete(code), 250);
-    }
+  if (code) {
+    activeKeys.value.add(code);
+    testedKeys.value.add(code);
+    currentKey.code = code;
+    if (!historyArray.value.includes(code)) historyArray.value.push(code);
+    
+    // Pequeno delay visual para simular o "pressionado" no layout gráfico
+    setTimeout(() => activeKeys.value.delete(code), 250);
+    nextTick(() => { if(historyRef.value) historyRef.value.scrollLeft = historyRef.value.scrollWidth; });
   }
 };
 
@@ -81,20 +83,19 @@ const handlePass = () => emit('test-completed', 'PASS');
 const handleFail = () => emit('test-completed', 'FAIL');
 const goBack = () => emit('test-cancelled');
 
-onMounted(async () => {
-  const bridge = window.chrome.webview.hostObjects.nativeBridge;
-  await bridge.SetKeyboardHook(true);
+// --- EVENTOS WEB PUROS ---
+onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
-  window.chrome.webview.addEventListener('message', handleNativeMessage);
+  
+  // Escuta o evento que criamos no App.vue contendo as teclas travadas pelo C#
+  window.addEventListener('native-key-pressed', handleNativeKey);
 });
 
-onUnmounted(async () => {
-  const bridge = window.chrome.webview.hostObjects.nativeBridge;
-  await bridge.SetKeyboardHook(false);
+onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
   window.removeEventListener('keyup', handleKeyUp);
-  window.chrome.webview.removeEventListener('message', handleNativeMessage);
+  window.removeEventListener('native-key-pressed', handleNativeKey);
 });
 </script>
 

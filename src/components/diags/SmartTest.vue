@@ -39,8 +39,8 @@
           <strong>{{ diskData.model_name || 'N/A' }}</strong>
         </div>
         <div class="info-card">
-          <span>Firmware:</span>
-          <strong>{{ diskData.firmware_version || 'N/A' }}</strong>
+          <span>Power on Time:</span>
+          <strong>{{ diskData.power_on_time || 'N/A' }}</strong>
         </div>
         <div class="info-card">
           <span>Capacidade:</span>

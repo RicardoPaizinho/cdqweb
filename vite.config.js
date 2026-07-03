@@ -16,6 +16,11 @@ export default defineConfig({
     },
   },
   build: {
+    // Define o diretório de saída
+    outDir: 'C:\Users\HP\Desktop\webview back funcional (2)\webview back funcional\bin\Debug\net8.0-windows10.0.26100.0',
+    // Opcional: limpa a pasta antes de gerar os arquivos
+    emptyOutDir: true,
+
     // Aumenta o limite para 1000kb para silenciar avisos de bibliotecas 3D como Three.js
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

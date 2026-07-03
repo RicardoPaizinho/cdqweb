@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed, watch } from 'vue';
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import ProgressBar1 from './components/progress/ProgressBar1.vue';
 import ProgressBar2 from './components/progress/ProgressBar2.vue';
 import ProgressBar3 from './components/progress/ProgressBar3.vue';
@@ -8,13 +8,17 @@ import Icons from './components/common/Icons.vue';
 import TestesView from '@/components/TestesView.vue';
 import DiagsView from '@/components/diags/DiagsView.vue';
 import Relatorios from '@/components/Relatorios.vue';
-import LogoView from './components/diags/LogoView.vue'; // O novo teste
+import LogoView from './components/diags/LogoView.vue'; 
 import StepsProgress from '@/components/StepsProgress.vue';
 import ConfiguraView from '@/components/ConfiguraView.vue';
 import Monitor from '@/components/Monitor.vue';
 import About from './components/About.vue';
 import { globalState } from './store.js';
 
+// --- CONFIGURAÇÃO DA API LOCAL ---
+const API_BASE_URL = 'http://localhost:5000/api';
+let performanceInterval = null;
+let keyboardInterval = null;
 
 // --- ESTADOS DE UI ---
 const progress = ref(0);
@@ -29,15 +33,20 @@ const isAboutOpen = ref(false);
 // --- LÓGICA DE NAVEGAÇÃO E RECOLHER SIDEBARS ---
 const setActiveMenu = (menu) => { 
   globalState.activeMenu = menu; 
-  console.log("Tentando mudar para o menu:", menu); // Se isso não aparecer no console, o evento não chegou aqui
+  console.log("Tentando mudar para o menu:", menu); 
 };
 
-
 watch(activeMenu, (newMenu) => {
-  // Fecha as barras automaticamente em telas de teste ou diagnósticos
   if (newMenu === 'testes' || newMenu === 'keyboardTest' || newMenu === 'LogoView' || newMenu === 'Diags') {
     leftSidebarExpanded.value = false;
     rightSidebarVisible.value = false;
+  }
+
+  // Liga/Desliga o Hook de teclado nativo dependendo da tela ativa
+  if (newMenu === 'keyboardTest') {
+    setKeyboardHookStatus(true);
+  } else {
+    setKeyboardHookStatus(false);
   }
 });
 
@@ -46,18 +55,18 @@ const serialNumber = ref(globalState.t('status.waiting'));
 const modelName = ref(globalState.t('status.waiting'));
 const orderNumber = ref('ORD-000000');
 const fabricante = ref(globalState.t('status.waiting'));
-const processador_Name = ref('Intel Core i5-6300U 2.40GHz');
-const processador_ClockSpeed = ref('teste');
-const processador_MaxClockSpeed = ref('teste');
-const processador_NumberOfCores = ref('teste');
-const processador_NumberOfLogicalProcessors = ref('teste');
-const processador_SerialNumber = ref('teste');
+const processador_Name = ref('Carregando...');
+const processador_ClockSpeed = ref('...');
+const processador_MaxClockSpeed = ref('...');
+const processador_NumberOfCores = ref('...');
+const processador_NumberOfLogicalProcessors = ref('...');
+const processador_SerialNumber = ref('...');
 
 const sistema = ref(' ');
-const sistemaKey = ref('AAAA-HHHHH-ASDSD-DDDFD-KKKKK');
-const sistemaBuild = ref('teste');
-const sistemaVersion = ref('teste');
-const sistemaArquitetura = ref('teste');
+const sistemaKey = ref('...');
+const sistemaBuild = ref('...');
+const sistemaVersion = ref('...');
+const sistemaArquitetura = ref('...');
 
 const card_memoriaTotal = ref('');
 const card_armazenamento = ref([]);
@@ -74,46 +83,38 @@ const cpuTemp = ref(0);
 const gpuTemp = ref(0);
 const batteryLevel = ref(0);
 
-// --- FUNÇÕES DE ATUALIZAÇÃO ---
+const flippedCard = ref(null); 
+
+const toggleFlip = (cardId) => {
+  flippedCard.value = flippedCard.value === cardId ? null : cardId;
+};
+
+// --- FUNÇÕES DE MAPEAMENTO ---
 function updatePCInfo(data) {
   if (!data) return;
   serialNumber.value = String(data.serialNumber || '');
   modelName.value = String(data.model || '');
-  //processadorName.value = String(data.processadorName || '');
-  //processadorClockSpeed.value = String(data.processadorClockSpeed || '');
-  //processadorMaxClockSpeed.value = String(data.processadorMaxClockSpeed || '');
+  processador_Name.value = String(data.processador_Name || '');
+  processador_ClockSpeed.value = String(data.processador_ClockSpeed || '');
+  processador_MaxClockSpeed.value = String(data.processador_MaxClockSpeed || '');
+  processador_NumberOfCores.value = String(data.processador_NumberOfCores || '');
+  processador_NumberOfLogicalProcessors.value = String(data.processador_NumberOfLogicalProcessors || '');
+  processador_SerialNumber.value = String(data.processador_SerialNumber || '');
 
- processador_Name.value = String(data.processador_Name || '');
- processador_ClockSpeed.value = String(data.processador_ClockSpeed || '');
- processador_MaxClockSpeed.value = String(data.processador_MaxClockSpeed || '');
- processador_NumberOfCores.value = String(data.processador_NumberOfCores || '');
- processador_NumberOfLogicalProcessors.value = String(data.processador_NumberOfLogicalProcessors || '');
- processador_SerialNumber.value = String(data.processador_SerialNumber || '');
-
- sistema.value = String(data.system || '');
- sistemaBuild.value = String(data.systemBuild || '');
- sistemaVersion.value = String(data.systemVersion || '');
- sistemaKey.value = String(data.systemKey || '');
- sistemaArquitetura.value = String(data.systemArchitecture || '');
+  sistema.value = String(data.system || '');
+  sistemaBuild.value = String(data.systemBuild || '');
+  sistemaVersion.value = String(data.systemVersion || '');
+  sistemaKey.value = String(data.systemKey || '');
+  sistemaArquitetura.value = String(data.systemArchitecture || '');
 
   card_memoriaTotal.value = String(data.memoria || '');
   card_armazenamento.value = Array.isArray(data.armazenamento) ? [...data.armazenamento] : [data.armazenamento];
   card_placaVideo.value = Array.isArray(data.placaVideo) ? [...data.placaVideo] : [data.placaVideo];
-  card_sistema.value = String(data.sistema || '');
+  card_sistema.value = String(data.system || '');
   card_lcd.value = String(data.lcd || '');
   orderNumber.value = "os-123456";
   fabricante.value = String(data.systemFamily || '');
 }
-
-// No seu componente:
-const flippedCard = ref(null); // Armazena o ID do card virado
-
-const toggleFlip = (cardId) => {
-  // Se clicar no mesmo card, ele volta ao normal. Se clicar em outro, ele vira o novo.
-  flippedCard.value = flippedCard.value === cardId ? null : cardId;
-};
-
-// Exemplo de dados que viriam do seu wrapper C# / LHM
 
 function updatePerformance(cpu, memory, disk, realtime = null) {
   cpuUsage.value = Number(cpu) || 0;
@@ -122,8 +123,66 @@ function updatePerformance(cpu, memory, disk, realtime = null) {
   if (realtime) {
     cpuTemp.value = Number(realtime.cpuTemp) || 0;
     gpuTemp.value = Number(realtime.gpuTemp) || 0;
-    diskTemp.value = Number(realtime.diskTemp) || 0;
+    diskTemp.value = Number(realtime.storageTemp) || 0; // Nome ajustado para bater com o novo C#
     batteryLevel.value = Math.round(Number(realtime.batteryLevel)) || 0;
+  }
+}
+
+// --- REQUISIÇÕES HTTP (MÉTODO FETCH) ---
+
+// Busca os dados estáticos do PC uma única vez
+async function fetchPCInfo() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pc-info`);
+    const data = await response.json();
+    updatePCInfo(data);
+  } catch (err) {
+    console.error("Erro ao buscar dados estáticos do C#:", err);
+  }
+}
+
+// Busca os dados dinâmicos continuamente (CPU, RAM, Temperaturas)
+async function fetchPerformanceData() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/performance`);
+    const data = await response.json();
+    if (data) {
+      updatePerformance(data.cpu, data.memory, data.disk, data.realtime);
+    }
+  } catch (err) {
+    console.error("Erro ao buscar métricas de performance:", err);
+  }
+}
+
+// Ativa ou desativa o Hook global de teclado no agente C#
+async function setKeyboardHookStatus(active) {
+  try {
+    // Usando URLSearchParams garante a formatação perfeita de query string (?active=true)
+    await fetch(`${API_BASE_URL}/teclado/status?active=${active}`, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (err) {
+    console.error("Erro ao alterar status do Hook de teclado:", err);
+  }
+}
+
+// Consome os eventos de tecla que ficaram na fila do C#
+async function fetchKeyboardEvents() {
+  if (activeMenu.value !== 'keyboardTest') return;
+  try {
+    const response = await fetch(`${API_BASE_URL}/teclado/eventos`);
+    const eventos = await response.json();
+    
+    if (eventos && eventos.length > 0) {
+      eventos.forEach(evt => {
+        console.log(`Tecla capturada via API nativa: ${evt.code}`);
+        // Aqui você dispara o evento para o seu componente de teste de teclado
+        // Exemplo: window.dispatchEvent(new CustomEvent('native-key-pressed', { detail: evt.code }));
+      });
+    }
+  } catch (err) {
+    console.error("Erro ao buscar eventos de teclado:", err);
   }
 }
 
@@ -140,40 +199,27 @@ const activeProgressComponent = computed(() => {
   return styleMap[currentStyleId.value] || ProgressBar4;
 });
 
-// --- COMUNICAÇÃO COM O C# ---
+// --- CICLO DE VIDA (INICIALIZAÇÃO WEB) ---
 onMounted(() => {
-  if (window.chrome?.webview) {
-    window.chrome.webview.addEventListener("message", (event) => {
-      try {
-        const cleanData = event.data;
-        if (!cleanData || !cleanData.type) return;
+  // 1. Busca os dados iniciais do hardware
+  fetchPCInfo();
 
-        switch (cleanData.type) {
-          case "pcInfo":
-            updatePCInfo(cleanData);
-            break;
-          case "performanceData":
-            updatePerformance(cleanData.cpu, cleanData.memory, cleanData.disk, cleanData.realtime);
-            break;
-        }
-      } catch (err) {
-        console.error("Erro ao processar mensagem do C#:", err);
-      }
-    });
+  // 2. Cria o looping para atualizar o monitor de desempenho (a cada 2 segundos)
+  performanceInterval = setInterval(fetchPerformanceData, 2000);
 
-    window.chrome.webview.postMessage({ type: "UI_READY" });
-    window.chrome.webview.postMessage({ type: "requestPCInfo" });
-  }
+  // 3. Cria o looping rápido para ler eventos de tecla física do Windows (a cada 150ms)
+  keyboardInterval = setInterval(fetchKeyboardEvents, 150);
+});
+
+onUnmounted(() => {
+  // Limpa os temporizadores ao destruir o componente para evitar vazamento de memória
+  if (performanceInterval) clearInterval(performanceInterval);
+  if (keyboardInterval) clearInterval(keyboardInterval);
 });
 
 // --- CONTROLES DE INTERFACE ---
 const toggleLeftSidebar = () => { leftSidebarExpanded.value = !leftSidebarExpanded.value; };
 const toggleRightSidebar = () => { rightSidebarVisible.value = !rightSidebarVisible.value; };
-
-const closeApp = () => window.chrome.webview.hostObjects.windowControls.CloseApp();
-const minimizeApp = () => window.chrome.webview.hostObjects.windowControls.MinimizeApp();
-const maximizeApp = () => window.chrome.webview.hostObjects.windowControls.MaximizeApp();
-const dragApp = () => window.chrome.webview.hostObjects.windowControls.DragWindow();
 
 window.addEventListener('progress-style-changed', (event) => {
   currentStyleId.value = event.detail;
