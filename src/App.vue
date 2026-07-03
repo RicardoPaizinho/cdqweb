@@ -154,7 +154,7 @@ async function fetchPerformanceData() {
   }
 }
 
-// Ativa ou desativa o Hook global de teclado no agente C#
+// Ativar ou desativar o Hook global de teclado no agente C#
 async function setKeyboardHookStatus(active) {
   try {
     // Usando URLSearchParams garante a formatação perfeita de query string (?active=true)
@@ -166,7 +166,7 @@ async function setKeyboardHookStatus(active) {
     console.error("Erro ao alterar status do Hook de teclado:", err);
   }
 }
-
+ 
 // Consome os eventos de tecla que ficaram na fila do C#
 async function fetchKeyboardEvents() {
   if (activeMenu.value !== 'keyboardTest') return;
