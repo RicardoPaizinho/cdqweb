@@ -1,0 +1,48 @@
+quero adaptar um teste que eu ja fazia no meu teste qd ele era em winforms para o webview
+esses testes eram realizados:
+Gerenciador de dispositivos> verifica se existem drivers com erros ou faltando instalar
+Bitlocker> verifica o padrão é liberar com ele desligado
+Discos> faz uma verificação no disco paraverificar se existem espaços grandes não alocados
+Ativação> Verifica se o windows está ativado
+Hd monitor> Verifica health, performance e temperatura do disco
+
+Pode criar a janela vue para receber esses dados do c#
+
+Enviando para o Vue: 
+{"drivers":{"status":"alert","details":{"errorCount":2,"devices":[{"name":"Synaptics FP Sensors (WBF) (PID=003f)","code":22},{"name":"HP HD Camera","code":22}]}},
+"bitlocker":{"status":"alert","details":{"drive":"C:","statusCode":2}},
+"partition":{"status":"alert","details":{"unallocatedGB":0.62}},
+"activation":{"status":"check"},
+"smart":{"status":"check","details":{"temp":35,"health":100}}}
+
+Informações
+Relatórios
+Testes
+Diagnosticos
+Monitor
+Configurações
+Sobre
+
+
+
+tests
+
+
+serviços
+inserir info manual
+consulta detalhada
+adm
+alterar status
+gerenciar usuarios
+dashboard
+
+Gostaria de alguns ajustes nas colunas de data(dataTecnico, dataQualidadeFinal) o formato ser reduzido a esse formato 18 Mar 2026 14:14:23
+e na coluna statusTecnico mudar a cor para vermelho ou verde quando for FAIL ou 
+gostaria tb q os dados fossem mostrados em uma linha unica 
+
+
+
+
+17 de agosto de 2023.
+
+
