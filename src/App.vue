@@ -16,7 +16,8 @@ import About from './components/About.vue';
 import { globalState } from './store.js';
 
 // --- CONFIGURAÇÃO DA API LOCAL ---
-const API_BASE_URL = 'http://localhost:5000/api';
+//const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://localhost:5001/api';
 let performanceInterval = null;
 let keyboardInterval = null;
 
