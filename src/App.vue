@@ -355,7 +355,7 @@ window.addEventListener('progress-style-changed', (event) => {
               <div class="info-card"><h3>{{ globalState.t('hardware.memoria') }}</h3><p>{{ card_memoriaTotal }}</p></div>
               <div class="info-card"><h3>{{ globalState.t('hardware.armazenamento') }}</h3><p v-for="item in card_armazenamento" :key="item">{{ item }}</p></div>
               <div class="info-card"><h3>{{ globalState.t('hardware.gpu') }}</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
-              <div class="info-card"><h3>{{ globalState.t('hardware.sistema') }}</h3><p>{{ card_sistema }}</p></div>
+              <!--div class="info-card"><h3>{{ globalState.t('hardware.sistema') }}</h3><p>{{ card_sistema }}</p></!--div  -->
               <div class="info-card"><h3>{{ globalState.t('hardware.lcd') }}</h3><p>{{ card_lcd }}</p></div>
             </div>
           </div>
