@@ -15,11 +15,21 @@ import Monitor from '@/components/Monitor.vue';
 import About from './components/About.vue';
 import { globalState } from './store.js';
 
-// --- CONFIGURAÇÃO DA API LOCAL ---
-//const API_BASE_URL = 'http://localhost:5000/api';
+// --- CONFIGURAÇÃO DAS APIS (LOCAL E PRODUÇÃO) ---
 const API_BASE_URL = 'https://localhost:5001/api';
+const API_PRODUCAO_URL = 'https://api.cdqweb.com.br';
+
 let performanceInterval = null;
 let keyboardInterval = null;
+
+// --- ESTADOS DE AUTENTICAÇÃO ---
+const isAuthenticated = ref(false);
+const username = ref('');
+const password = ref('');
+const loginError = ref('');
+const isSubmitting = ref(false);
+const userLocal = ref('');
+const userConfig = ref({ idioma: 'pt', batteryHealth: 80, diskHealth: 80 });
 
 // --- ESTADOS DE UI ---
 const progress = ref(0);
@@ -43,11 +53,13 @@ watch(activeMenu, (newMenu) => {
     rightSidebarVisible.value = false;
   }
 
-  // Liga/Desliga o Hook de teclado nativo dependendo da tela ativa
-  if (newMenu === 'keyboardTest') {
-    setKeyboardHookStatus(true);
-  } else {
-    setKeyboardHookStatus(false);
+  // Liga/Desliga o Hook de teclado nativo dependendo da tela ativa (apenas se logado)
+  if (isAuthenticated.value) {
+    if (newMenu === 'keyboardTest') {
+      setKeyboardHookStatus(true);
+    } else {
+      setKeyboardHookStatus(false);
+    }
   }
 });
 
@@ -90,6 +102,19 @@ const toggleFlip = (cardId) => {
   flippedCard.value = flippedCard.value === cardId ? null : cardId;
 };
 
+// --- CONTROLE DE MODO GLOBAL (DIAGNÓSTICOS VS PRODUÇÃO) ---
+const appMode = ref('diagnostics'); // Modos: 'diagnostics' ou 'production'
+
+// Se quiser que o menu lateral resete ao alternar de modo
+const toggleAppMode = (mode) => {
+  appMode.value = mode;
+  if (mode === 'production') {
+    globalState.activeMenu = 'dashboard'; // Menu inicial do modo produção
+  } else {
+    globalState.activeMenu = 'informacoes'; // Menu inicial do modo testes
+  }
+};
+
 // --- FUNÇÕES DE MAPEAMENTO ---
 function updatePCInfo(data) {
   if (!data) return;
@@ -124,14 +149,66 @@ function updatePerformance(cpu, memory, disk, realtime = null) {
   if (realtime) {
     cpuTemp.value = Number(realtime.cpuTemp) || 0;
     gpuTemp.value = Number(realtime.gpuTemp) || 0;
-    diskTemp.value = Number(realtime.storageTemp) || 0; // Nome ajustado para bater com o novo C#
+    diskTemp.value = Number(realtime.storageTemp) || 0; 
     batteryLevel.value = Math.round(Number(realtime.batteryLevel)) || 0;
   }
 }
 
 // --- REQUISIÇÕES HTTP (MÉTODO FETCH) ---
 
-// Busca os dados estáticos do PC uma única vez
+// Realiza a autenticação no Servidor Node Externo
+async function handleLogin() {
+  if (!username.value || !password.value) {
+    loginError.value = "Preencha todos os campos.";
+    return;
+  }
+
+  isSubmitting.value = true;
+  loginError.value = '';
+
+  try {
+    const response = await fetch(`${API_PRODUCAO_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario: username.value,
+        senha: password.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // 1. Libera o acesso ao layout principal
+      isAuthenticated.value = true;
+      
+      // 2. Armazena localidade e os parâmetros mínimos de teste vindos do Node
+      userLocal.value = data.local;
+      userConfig.value = data.config;
+
+      console.log(`Autenticado com sucesso! Região: ${data.local}`);
+
+      // 3. Aplica a internacionalização dinâmica com o idioma retornado
+      if (globalState && typeof globalState.changeLanguage === 'function') {
+        globalState.changeLanguage(data.config.idioma);
+      }
+
+      // 4. Dispara a comunicação com o Agente de Diagnósticos C# Local
+      fetchPCInfo();
+      performanceInterval = setInterval(fetchPerformanceData, 2000);
+      keyboardInterval = setInterval(fetchKeyboardEvents, 150);
+    } else {
+      loginError.value = data.message || "Usuário ou senha incorretos.";
+    }
+  } catch (err) {
+    console.error("Erro na autenticação remota:", err);
+    loginError.value = "Não foi possível conectar ao servidor de autenticação.";
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+// Busca os dados estáticos do PC uma única vez (Executado após login)
 async function fetchPCInfo() {
   try {
     const response = await fetch(`${API_BASE_URL}/pc-info`);
@@ -158,7 +235,6 @@ async function fetchPerformanceData() {
 // Ativar ou desativar o Hook global de teclado no agente C#
 async function setKeyboardHookStatus(active) {
   try {
-    // Usando URLSearchParams garante a formatação perfeita de query string (?active=true)
     await fetch(`${API_BASE_URL}/teclado/status?active=${active}`, { 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -178,8 +254,6 @@ async function fetchKeyboardEvents() {
     if (eventos && eventos.length > 0) {
       eventos.forEach(evt => {
         console.log(`Tecla capturada via API nativa: ${evt.code}`);
-        // Aqui você dispara o evento para o seu componente de teste de teclado
-        // Exemplo: window.dispatchEvent(new CustomEvent('native-key-pressed', { detail: evt.code }));
       });
     }
   } catch (err) {
@@ -202,18 +276,12 @@ const activeProgressComponent = computed(() => {
 
 // --- CICLO DE VIDA (INICIALIZAÇÃO WEB) ---
 onMounted(() => {
-  // 1. Busca os dados iniciais do hardware
-  fetchPCInfo();
-
-  // 2. Cria o looping para atualizar o monitor de desempenho (a cada 2 segundos)
-  performanceInterval = setInterval(fetchPerformanceData, 2000);
-
-  // 3. Cria o looping rápido para ler eventos de tecla física do Windows (a cada 150ms)
-  keyboardInterval = setInterval(fetchKeyboardEvents, 150);
+  // Os loops locais não são mais iniciados aqui. 
+  // Eles aguardam a validação da função 'handleLogin'.
 });
 
 onUnmounted(() => {
-  // Limpa os temporizadores ao destruir o componente para evitar vazamento de memória
+  // Garante a limpeza dos loops se o componente for desmontado
   if (performanceInterval) clearInterval(performanceInterval);
   if (keyboardInterval) clearInterval(keyboardInterval);
 });
@@ -228,10 +296,60 @@ window.addEventListener('progress-style-changed', (event) => {
 </script>
 
 <template>
-  <div class="app-container">
+  <div v-if="!isAuthenticated" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <h2 class="tech-font">HARDWARE DIAG V2.0</h2>
+        <span class="database-badge">SERVER DATABASE ACCESS</span>
+      </div>
+      
+      <p class="login-subtitle">Insira suas credenciais para sincronizar as diretrizes e bancos de dados locais e internacionais.</p>
+      
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div class="input-group">
+          <label class="tech-label">Usuário de Acesso</label>
+          <div class="input-container">
+            <input 
+              v-model="username" 
+              type="text" 
+              placeholder="Ex: ricardo.silva" 
+              :disabled="isSubmitting"
+              required 
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="tech-label">Senha de Segurança</label>
+          <div class="input-container">
+            <input 
+              v-model="password" 
+              type="password" 
+              placeholder="••••••••" 
+              :disabled="isSubmitting"
+              required 
+            />
+          </div>
+        </div>
+
+        <div v-if="loginError" class="error-box">
+          <span class="error-icon">⚠</span>
+          <p class="error-msg">{{ loginError }}</p>
+        </div>
+
+        <button type="submit" class="btn-login tech-font" :disabled="isSubmitting">
+          <span v-if="isSubmitting">AUTENTICANDO NO SERVIDOR...</span>
+          <span v-else>CONECTAR SISTEMA</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div v-else class="app-container">
     <nav class="custom-title-bar">
       <div class="drag-region" @mousedown="dragApp">
         <span class="app-title tech-font">HARDWARE DIAG V2.0</span>
+        <span class="region-indicator">{{ userLocal }} ACTIVE REGION</span>
       </div>
       <div class="topbar-center" @mousedown.stop>
         <StepsProgress />
@@ -302,79 +420,65 @@ window.addEventListener('progress-style-changed', (event) => {
             <h2 class="section-title">{{ modelName }}</h2>
             <div class="info-grid">
 
-<div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'cpu' }" @click="toggleFlip('cpu')">
-  <div class="info-card-inner">
-    
-    <div class="info-card-front">
-      <h3>{{ globalState.t('hardware.processador') }}</h3>
-      <p>{{ processador_Name }}</p>
-      <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
-    </div>
+              <div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'cpu' }" @click="toggleFlip('cpu')">
+                <div class="info-card-inner">
+                  <div class="info-card-front">
+                    <h3>{{ globalState.t('hardware.processador') }}</h3>
+                    <p>{{ processador_Name }}</p>
+                    <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
+                  </div>
+                  <div class="info-card-back">
+                    <h3>{{ processador_Name }}</h3>
+                    <div class="details-list">
+                      <p>CORES: {{  processador_NumberOfCores }}</p>
+                      <p>THREADS: {{ processador_NumberOfLogicalProcessors }}</p>
+                      <p>CLOCK: {{ processador_ClockSpeed }}GHz</p>
+                      <p>Serial: {{ processador_SerialNumber }}</p>
+                      <p>MaxClock: {{ processador_MaxClockSpeed }}GHz</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-    <div class="info-card-back">
-      <h3>{{ processador_Name }}</h3>
-      <div class="details-list">
-        <p>CORES: {{  processador_NumberOfCores }}</p>
-        <p>THREADS: {{ processador_NumberOfLogicalProcessors }}</p>
-        <p>CLOCK: {{ processador_ClockSpeed }}GHz</p>
-         <p>Serial: {{ processador_SerialNumber }}</p>
-        <p>MaxClock: {{ processador_MaxClockSpeed }}GHz</p>
-       
-      </div>
-    </div>
+              <div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'system' }" @click="toggleFlip('system')">
+                <div class="info-card-inner">
+                  <div class="info-card-front">
+                    <h3>{{ globalState.t('hardware.sistema') }}</h3>
+                    <p>{{ sistema }}</p>
+                    <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
+                  </div>
+                  <div class="info-card-back">
+                    <h3>{{ sistema }}</h3>
+                    <div class="details-list">
+                      <p>Architecture: {{ sistemaArquitetura }}</p>
+                      <p>Build: {{ sistemaBuild }}</p>
+                      <p>Key: {{ sistemaKey }}</p>
+                      <p>Version: {{ sistemaVersion }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-    
-
-  </div>
-</div>
-
-<div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'system' }" @click="toggleFlip('system')">
-  <div class="info-card-inner">
-    
-    <div class="info-card-front">
-      <h3>{{ globalState.t('hardware.sistema') }}</h3>
-      <p>{{ sistema }}</p>
-      <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
-    </div>
-
-    <div class="info-card-back">
-      <h3>{{ sistema }}</h3>
-      <div class="details-list">
-        <p>Architecture: {{ sistemaArquitetura }}</p>
-        <p>Build: {{ sistemaBuild }}</p>
-        <p>Key: {{ sistemaKey }}</p>
-        <p>Version: {{ sistemaVersion }}</p>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'memory' }" @click="toggleFlip('memory')">
-  <div class="info-card-inner">
-    
-    <div class="info-card-front">
-      <h3>{{ globalState.t('hardware.memoria') }}</h3>
-      <p>{{ card_memoriaTotal  }}</p>
-      <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
-    </div>
-
-    <div class="info-card-back">
-      <h3>>{{ globalState.t('hardware.memoria') }}</h3>
-      <div class="details-list">
-        <p>Detalhes: {{ sistemaArquitetura }}</p>
-      </div>
-    </div>
-
-  </div>
-</div>
-             
-              <!--div class="info-card"><h3>{{ globalState.t('hardware.memoria') }}</h3><p>{{ card_memoriaTotal }}</p></!--div-->
+              <div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'memory' }" @click="toggleFlip('memory')">
+                <div class="info-card-inner">
+                  <div class="info-card-front">
+                    <h3>{{ globalState.t('hardware.memoria') }}</h3>
+                    <p>{{ card_memoriaTotal  }}</p>
+                    <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
+                  </div>
+                  <div class="info-card-back">
+                    <h3>{{ globalState.t('hardware.memoria') }}</h3>
+                    <div class="details-list">
+                      <p>Detalhes: {{ sistemaArquitetura }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+                   
               <div class="info-card"><h3>{{ globalState.t('hardware.armazenamento') }}</h3><p v-for="item in card_armazenamento" :key="item">{{ item }}</p></div>
               <div class="info-card"><h3>{{ globalState.t('hardware.gpu') }}</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
-              <!--div class="info-card"><h3>{{ globalState.t('hardware.sistema') }}</h3><p>{{ card_sistema }}</p></!--div  -->
               <div class="info-card"><h3>{{ globalState.t('hardware.lcd') }}</h3><p>{{ card_lcd }}</p></div>
-            <div class="info-card"><h3>Mostrar todos detalhes</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
+              <div class="info-card"><h3>Mostrar todos detalhes</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
 
             </div>
           </div>
@@ -393,8 +497,15 @@ window.addEventListener('progress-style-changed', (event) => {
           </div>
 
           <div v-show="activeMenu === 'Diags'" class="content-section"><DiagsView /></div>
+          
           <div v-show="activeMenu === 'monitor'" class="content-section">
-            <Monitor :cpu-temp="cpuTemp" :gpu-temp="gpuTemp" :battery-level="batteryLevel" />
+            <Monitor 
+              :cpu-temp="cpuTemp" 
+              :gpu-temp="gpuTemp" 
+              :battery-level="batteryLevel" 
+              :min-battery-health="userConfig.batteryHealth"
+              :min-disk-health="userConfig.diskHealth"
+            />
           </div>
           <div v-show="activeMenu === 'configurar'" class="content-section"><ConfiguraView /></div>
         </div>
@@ -865,5 +976,180 @@ window.addEventListener('progress-style-changed', (event) => {
   font-size: 0.75rem !important;
   color: var(--accent) !important;
   font-family: var(--font-tech);
+}
+
+/* --- CONTAINER PRINCIPAL DE LOGIN --- */
+.login-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0b0f19; /* Fundo ultra escuro tech */
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* --- CARD DE LOGIN --- */
+.login-card {
+  background: #111827; /* Cinza escuro azulado */
+  border: 1px solid #1f2937;
+  padding: 2.5rem;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+}
+
+/* --- CABEÇALHO DO CARD --- */
+.login-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.6rem;
+  letter-spacing: 1px;
+  color: #3b82f6; /* Azul elétrico */
+}
+
+.database-badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.login-subtitle {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* --- FORMULÁRIO E INPUTS --- */
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.tech-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.input-container input {
+  width: 100%;
+  background: #030712; /* Fundo interno dos inputs */
+  border: 1px solid #374151;
+  padding: 0.8rem 1rem;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-container input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.input-container input:disabled {
+  background: #1f2937;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* --- CAIXA DE ERRO --- */
+.error-box {
+  display: flex;
+  align-items: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.error-icon {
+  color: #ef4444;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.error-msg {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* --- BOTÃO SUBMIT NÉON/TECH --- */
+.btn-login {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.9rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.2s ease, transform 0.1s ease;
+  margin-top: 0.5rem;
+}
+
+.btn-login:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+}
+
+.btn-login:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-login:disabled {
+  background: #1f2937;
+  color: #4b5563;
+  cursor: not-allowed;
+  border: 1px solid #374151;
+}
+
+/* --- FONTE TECNOLÓGICA (OPCIONAL/FALLBACK) --- */
+.tech-font {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+}
+
+/* --- INDICADOR DE REGIÃO NO TOPBAR DO APP --- */
+.region-indicator {
+  margin-left: 15px;
+  font-size: 0.7rem;
+  background: #10b981; /* Verde esmeralda indicando conexão ativa */
+  color: #042f2e;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  vertical-align: middle;
 }
 </style>
