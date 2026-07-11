@@ -5,6 +5,10 @@ import { messages } from './locales/i18n.js';
 // --- CONFIGURAÇÃO DA API DE LOGIN ---
 const LOGIN_API_URL = 'https://api.cdqweb.com.br/api/auth/login';
 
+// --- CONFIGURAÇÃO DA API DE RELATÓRIOS (salva o diagnóstico completo no banco) ---
+// ATENÇÃO: ajuste esta URL para a rota real do seu servidor Node.
+const RELATORIO_API_URL = 'https://api.cdqweb.com.br/api/relatorios';
+
 export const globalState = reactive({
   language: localStorage.getItem('app-lang') || 'pt',
   activeMenu: 'informacoes', 
@@ -109,7 +113,87 @@ export const globalState = reactive({
     touchscreen: { label: 'Touchscreen', result: '' }
   },
   
-  testReports: [], 
+  testReports: [],
+
+  // --- RELATÓRIO FINAL (Relatorios.vue) ---
+  currentOS: '',
+  reportComments: '',
+  savingReport: false,
+  saveReportError: '',
+
+  // Calcula o status geral com base em todos os testes já executados.
+  // Retorna null se nenhum teste foi rodado ainda.
+  get overallTestStatus() {
+    const executed = Object.values(this.testResults).filter(
+      (r) => r.result === 'PASS' || r.result === 'FAIL'
+    );
+    if (executed.length === 0) return null;
+    return executed.every((r) => r.result === 'PASS') ? 'PASS' : 'FAIL';
+  },
+
+  // Envia o relatório completo (O.S. + status geral + comentários + todos os
+  // resultados de teste) para o servidor Node, que grava no banco de dados.
+  async saveFinalReport(os, comments) {
+    this.savingReport = true;
+    this.saveReportError = '';
+    try {
+      if (!os || !os.trim()) {
+        throw new Error('Informe o número da O.S. antes de salvar.');
+      }
+      const status = this.overallTestStatus;
+      if (!status) {
+        throw new Error('Nenhum teste foi executado ainda.');
+      }
+
+      const payload = {
+        os: os.trim(),
+        status,
+        comments: comments || '',
+        tecnico: this.user?.nome || '',
+        tipoUsuario: this.user?.tipo || '',
+        local: this.user?.local || '',
+        testResults: this.testResults,
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await fetch(RELATORIO_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json().catch(() => null);
+      if (!response.ok || (data && data.success === false)) {
+        throw new Error(data?.message || 'Falha ao salvar relatório no servidor.');
+      }
+
+      // Reflete o envio no histórico local imediatamente
+      const locale = this.language === 'pt' ? 'pt-BR' : this.language === 'en' ? 'en-US' : 'es-ES';
+      this.testReports.unshift({
+        id: Date.now(),
+        os: payload.os,
+        name: `Relatório completo — O.S. ${payload.os}`,
+        status: status === 'PASS' ? this.t('status.approved') : this.t('status.rejected'),
+        date: new Date().toLocaleString(locale)
+      });
+
+      this.currentOS = '';
+      this.reportComments = '';
+      return true;
+    } catch (err) {
+      this.saveReportError = err.message || 'Erro ao salvar relatório.';
+      return false;
+    } finally {
+      this.savingReport = false;
+    }
+  },
+
+  // Zera os resultados de todos os testes (útil para começar um novo equipamento)
+  resetAllTests() {
+    Object.keys(this.testResults).forEach((key) => {
+      this.testResults[key].result = '';
+    });
+  },
 
   // Função de Tradução que consome o arquivo i18n.js
   t(path) {

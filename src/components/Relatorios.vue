@@ -1,10 +1,70 @@
 <template>
   <div class="reports-container">
     <div class="header-actions">
-      <h2 class="section-title">Histórico de Diagnósticos</h2>
+      <h2 class="section-title">Relatório de Diagnóstico</h2>
       <button class="btn-clear" @click="clearReports" v-if="globalState.testReports.length > 0">
         Limpar Histórico
       </button>
+    </div>
+
+    <!-- PAINEL DE FECHAMENTO DO RELATÓRIO -->
+    <div class="closing-panel">
+      <div class="closing-grid">
+        <div class="field">
+          <label class="field-label">Número da O.S.</label>
+          <input
+            v-model="globalState.currentOS"
+            type="text"
+            class="field-input"
+            placeholder="Ex: 000123"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field-label">Status Geral</label>
+          <div class="status-display" :class="statusClass">
+            {{ statusLabel }}
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Comentários</label>
+        <textarea
+          v-model="globalState.reportComments"
+          class="field-textarea"
+          rows="3"
+          placeholder="Observações sobre o diagnóstico (opcional)..."
+        ></textarea>
+      </div>
+
+      <!-- RESUMO DOS TESTES EXECUTADOS -->
+      <div class="tests-summary">
+        <span
+          v-for="(test, key) in globalState.testResults"
+          :key="key"
+          class="summary-chip"
+          :class="{
+            'chip-pass': test.result === 'PASS',
+            'chip-fail': test.result === 'FAIL',
+            'chip-pending': !test.result
+          }"
+        >
+          {{ test.label }}
+        </span>
+      </div>
+
+      <p v-if="globalState.saveReportError" class="save-error">{{ globalState.saveReportError }}</p>
+
+      <div class="closing-actions">
+        <button
+          class="btn-save"
+          :disabled="globalState.savingReport || !globalState.overallTestStatus"
+          @click="handleSave"
+        >
+          {{ globalState.savingReport ? 'Salvando...' : 'Salvar Relatório no Banco de Dados' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="globalState.testReports.length === 0" class="empty-state">
@@ -49,20 +109,43 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { globalState } from '@/store.js';
 import Icons from '@/components/common/Icons.vue';
 
+const statusLabel = computed(() => {
+  const status = globalState.overallTestStatus;
+  if (status === 'PASS') return 'PASS';
+  if (status === 'FAIL') return 'FAIL';
+  return 'Aguardando testes...';
+});
+
+const statusClass = computed(() => {
+  const status = globalState.overallTestStatus;
+  if (status === 'PASS') return 'status-pass';
+  if (status === 'FAIL') return 'status-fail';
+  return 'status-idle';
+});
+
+const handleSave = async () => {
+  const ok = await globalState.saveFinalReport(globalState.currentOS, globalState.reportComments);
+  if (ok) {
+    alert('Relatório salvo com sucesso!');
+  }
+};
+
 const viewDetails = (report) => {
-  console.log("Abrindo detalhes de:", report.id);
+  console.log('Abrindo detalhes de:', report.id);
   // Aqui você pode abrir um modal com o JSON completo do hardware
 };
 
 const clearReports = () => {
-  if(confirm("Deseja apagar todos os relatórios?")) {
+  if (confirm('Deseja apagar todos os relatórios?')) {
     globalState.testReports = [];
   }
 };
 </script>
+
 <style scoped>
 .reports-container {
   padding: 10px;
@@ -76,6 +159,131 @@ const clearReports = () => {
   margin-bottom: 20px;
 }
 
+/* --- PAINEL DE FECHAMENTO --- */
+.closing-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.closing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.field-input,
+.field-textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.field-input:focus,
+.field-textarea:focus {
+  border-color: var(--accent);
+}
+
+.status-display {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-idle { color: var(--text-dim); }
+
+.status-pass {
+  background: rgba(0, 255, 136, 0.1);
+  color: #00ff88;
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.status-fail {
+  background: rgba(255, 68, 68, 0.1);
+  color: #ff4444;
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
+/* --- RESUMO DE TESTES (CHIPS) --- */
+.tests-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.summary-chip {
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chip-pass { color: #00ff88; border-color: rgba(0, 255, 136, 0.3); background: rgba(0, 255, 136, 0.08); }
+.chip-fail { color: #ff4444; border-color: rgba(255, 68, 68, 0.3); background: rgba(255, 68, 68, 0.08); }
+.chip-pending { color: var(--text-dim); opacity: 0.6; }
+
+.save-error {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.closing-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-save {
+  background-color: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- TABELA (ORIGINAL) --- */
 .table-wrapper {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);
@@ -106,7 +314,7 @@ const clearReports = () => {
 }
 
 .table-row:hover {
-  background: rgba(255, 136, 0, 0.05); /* Glow laranja sutil ao passar o mouse */
+  background: rgba(255, 136, 0, 0.05);
   transform: scale(1.002);
 }
 
@@ -115,7 +323,6 @@ const clearReports = () => {
   font-size: 0.9rem;
 }
 
-/* Estilo das Badges de Status */
 .status-badge {
   padding: 4px 10px;
   border-radius: 6px;
@@ -136,7 +343,6 @@ const clearReports = () => {
   border: 1px solid rgba(255, 68, 68, 0.3);
 }
 
-/* Botão de Detalhes */
 .btn-detail {
   background: transparent;
   border: 1px solid var(--accent);
@@ -160,7 +366,7 @@ const clearReports = () => {
 
 .empty-state {
   text-align: center;
-  padding: 100px;
+  padding: 60px;
   color: var(--text-dim);
 }
 
