@@ -14,15 +14,15 @@ const activeWindow = computed(() => globalState.activeWindow);
 const user = computed(() => globalState.user);
 
 // --- FORMULÁRIO DE LOGIN ---
-const loginId = ref('');
+const loginUsuario = ref('');
 const loginSenha = ref('');
 
 async function handleLogin() {
-  if (!loginId.value || !loginSenha.value) {
+  if (!loginUsuario.value || !loginSenha.value) {
     globalState.authError = 'Informe usuário e senha.';
     return;
   }
-  const ok = await globalState.login(loginId.value, loginSenha.value);
+  const ok = await globalState.login(loginUsuario.value, loginSenha.value);
   if (ok) {
     loginSenha.value = '';
   }
@@ -30,7 +30,7 @@ async function handleLogin() {
 
 function handleLogout() {
   globalState.logout();
-  loginId.value = '';
+  loginUsuario.value = '';
   loginSenha.value = '';
 }
 
@@ -64,10 +64,10 @@ onMounted(() => {
 
         <label class="login-label">Usuário</label>
         <input
-          v-model="loginId"
+          v-model="loginUsuario"
           type="text"
           class="login-input"
-          placeholder="ID de acesso"
+          placeholder="Usuário"
           autocomplete="username"
         />
 
