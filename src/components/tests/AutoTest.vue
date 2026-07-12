@@ -17,7 +17,7 @@
           <div class="card-icon">📟</div>
           <div class="card-info">
             <h3>Gerenciador de Dispositivos</h3>
-            <p v-if="results.drivers.status === 'loading'">Aguardando C#...</p>
+            <p v-if="results.drivers.status === 'loading'">Aguardando agente local...</p>
             <p v-else>
               {{ results.drivers.status === 'check' ? 'Drivers OK' : `Erro em ${results.drivers.details?.errorCount || 0} disp.` }}
             </p>
@@ -76,20 +76,27 @@
     </div>
 
     <div class="debug-footer">
-      <strong>STATUS DA PONTE:</strong> 
+      <strong>STATUS DA PONTE:</strong>
       <span :style="{ color: bridgeReady ? '#00ff88' : '#ff4444' }">
-        {{ bridgeReady ? 'CONECTADO AO C#' : 'AGUARDANDO PONTE...' }}
+        {{ bridgeReady ? 'CONECTADO AO AGENTE LOCAL' : 'AGUARDANDO AGENTE (porta 5000)...' }}
       </span>
       <span v-if="lastUpdate" class="update-time"> | Último teste: {{ lastUpdate }}</span>
+      <button class="btn-refresh" @click="refresh" :disabled="refreshing">
+        {{ refreshing ? 'Executando...' : 'Reexecutar diagnóstico' }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onBeforeMount, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+
+// --- CONFIGURAÇÃO DA API LOCAL (agente C#) ---
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const bridgeReady = ref(false);
 const lastUpdate = ref('');
+const refreshing = ref(false);
 const results = ref({
   drivers: { status: 'loading', details: {} },
   bitlocker: { status: 'loading', details: {} },
@@ -99,29 +106,52 @@ const results = ref({
 });
 
 const isAllSystemOk = computed(() => {
-  return Object.values(results.value).every(r => r.status === 'check');
+  return Object.values(results.value).every((r) => r.status === 'check');
 });
 
-const emit = defineEmits(['test-completed', 'test-cancelled']);
-const activeTest = ref(null);
+defineEmits(['test-completed', 'test-cancelled']);
 
-// FUNÇÃO GLOBAL - DEFINA UMA VEZ SÓ
-window.receiveAutoTestResults = (data) => {
-  console.log("%c[C# -> VUE] DADOS CHEGARAM!", "color: #00ff88; font-weight: bold;", data);
-  if (data) {
-    results.value = data;
-    lastUpdate.value = new Date().toLocaleTimeString();
-    bridgeReady.value = true;
+const applyData = (data) => {
+  if (!data || data.error) return;
+  results.value = {
+    drivers: data.drivers ?? { status: 'alert', details: {} },
+    bitlocker: data.bitlocker ?? { status: 'alert', details: {} },
+    partition: data.partition ?? { status: 'alert', details: {} },
+    activation: data.activation ?? { status: 'alert', details: {} },
+    smart: data.smart ?? { status: 'alert', details: {} }
+  };
+  lastUpdate.value = new Date().toLocaleTimeString();
+  bridgeReady.value = true;
+};
+
+const fetchResults = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auto-diagnostics`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    applyData(data);
+  } catch (err) {
+    bridgeReady.value = false;
+    console.error('Falha ao buscar diagnóstico automático:', err);
+  }
+};
+
+const refresh = async () => {
+  refreshing.value = true;
+  try {
+    const response = await fetch(`${API_BASE_URL}/auto-diagnostics/refresh`, { method: 'POST' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    applyData(data);
+  } catch (err) {
+    console.error('Falha ao reexecutar diagnóstico:', err);
+  } finally {
+    refreshing.value = false;
   }
 };
 
 onMounted(() => {
-  // Verifica a ponte
-  if (window.chrome?.webview?.hostObjects?.nativeBridge) {
-    bridgeReady.value = true;
-    // Solicita os dados que ficaram no cache do C# caso o Vue tenha demorado a abrir
-    window.chrome.webview.hostObjects.nativeBridge.RequestAutoTestData();
-  }
+  fetchResults();
 });
 
 const statusClass = (status) => ({
@@ -130,14 +160,19 @@ const statusClass = (status) => ({
   'is-alert': status === 'alert'
 });
 
-const runCmd = async (methodName) => {
+const runCmd = async (action) => {
   try {
-    const bridge = window.chrome?.webview?.hostObjects?.nativeBridge;
-    if (bridge && bridge[methodName]) {
-      await bridge[methodName]();
+    const response = await fetch(`${API_BASE_URL}/auto-diagnostics/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || (data && data.success === false)) {
+      console.error('Falha ao executar ação:', data?.message);
     }
   } catch (err) {
-    console.error("Erro ao chamar C#:", err);
+    console.error('Erro ao chamar o agente local:', err);
   }
 };
 </script>
@@ -254,10 +289,30 @@ const runCmd = async (methodName) => {
   background: #050505;
   border-radius: 5px;
   color: #666;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .update-time {
-  margin-left: 10px;
   font-style: italic;
+}
+
+.btn-refresh {
+  margin-left: auto;
+  background: #222;
+  border: 1px solid #444;
+  color: #ff8800;
+  cursor: pointer;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

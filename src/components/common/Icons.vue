@@ -94,10 +94,18 @@
       <path d="M12 18v4"></path>
     </svg>
 
-    <svg v-else-if="name === 'usb'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M10 7V3h4v4"></path>
-      <path d="M10 14H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-      <path d="M10 14v5a2 2 0 0 0 2 2 2 2 0 0 0 2-2v-5"></path>
+<svg v-else-if="name === 'usb'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2v16"></path>
+      
+      <path d="M9.5 4.5L12 2l2.5 2.5"></path>
+      
+      <circle cx="11" cy="20" r="1.4" fill="currentColor"></circle>
+      
+      <path d="M12 15c-3.5 0-6-1.5-6-4.5V7"></path>
+      <circle cx="6" cy="5.5" r="1" fill="currentColor"></circle>
+      
+      <path d="M12 12c3.5 0 6-1.5 6-4.5V9"></path>
+      <path d="M16.5 5.5h3v3h-3z" fill="currentColor"></path>
     </svg>
 
     <svg v-else-if="name === 'network'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -105,6 +113,41 @@
       <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
       <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
       <line x1="12" y1="20" x2="12.01" y2="20"></line>
+    </svg>
+
+    <svg v-else-if="name === 'battery'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 7h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-3"></path> 
+      
+      <path d="M7 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path> 
+      
+      <polyline points="11 7 8 12 12 12 9 17"></polyline> 
+      
+      <line x1="22" x2="22" y1="11" y2="13"></line>
+    </svg>
+
+    <svg v-else-if="name === 'touchscreen'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="16" height="12" rx="1.5"></rect>
+      
+      <path d="M5 6h6M5 9h8M5 12h4"></path>
+      
+      <path d="M10 15v3a2 2 0 0 1-2 2H6"></path>
+      
+      <path d="M22 21v-8a1.5 1.5 0 0 0-1.5-1.5h-1a1.5 1.5 0 0 0-1.5 1.5V11a1.5 1.5 0 0 0-1.5-1.5h-1A1.5 1.5 0 0 0-14 11v1a1.5 1.5 0 0 0-1.5-1.5h-1A1.5 1.5 0 0 0-18 12v6a3 3 0 0 0 3 3h3"></path>
+      
+      <circle cx="5" cy="1" r="0.25" fill="currentColor"></circle>
+      <circle cx="8" cy="1" r="0.25" fill="currentColor"></circle>
+    </svg>
+
+<svg v-else-if="name === 'joystick'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="6" width="22" height="13" rx="3"></rect>
+      
+      <path d="M6 12h4"></path>
+      <path d="M8 10v4"></path>
+      
+      <circle cx="16.5" cy="9.5" r="0.5" fill="currentColor"></circle>
+      <circle cx="14.5" cy="11.5" r="0.5" fill="currentColor"></circle>
+      <circle cx="18.5" cy="11.5" r="0.5" fill="currentColor"></circle>
+      <circle cx="16.5" cy="13.5" r="0.5" fill="currentColor"></circle>
     </svg>
 
 

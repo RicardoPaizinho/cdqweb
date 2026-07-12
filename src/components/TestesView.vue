@@ -47,10 +47,10 @@ const testButtons = [
   { key: 'speaker', title: 'Speaker', icon: 'speaker' },
   { key: 'webcam', title: 'Webcam', icon: 'webcam' },
   { key: 'redes', title: 'Redes', icon: 'network' },
-  { key: 'battery', title: 'Bateria', icon: 'about' }, // Usei 'about' como placeholder
-  { key: 'joystick', title: 'Joystick', icon: 'stress' }, // Usei 'stress' como placeholder
+  { key: 'battery', title: 'Bateria', icon: 'battery' }, // Usei 'battery' como placeholder
+  { key: 'joystick', title: 'Joystick', icon: 'joystick' }, // Usei 'joystick' como placeholder
   { key: 'usb', title: 'Portas USB', icon: 'usb' },
-  { key: 'touchscreen', title: 'Tela de Toque', icon: 'touchscreen' },
+  { key: 'touchscreen', title: 'Touchscreen', icon: 'touchscreen' },
   { key: 'auto', title: 'Teste Automático', icon: 'test-list' },
 ];
 </script>

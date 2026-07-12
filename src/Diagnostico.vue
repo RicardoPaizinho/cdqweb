@@ -21,8 +21,10 @@ import About from './components/About.vue';
 import { globalState } from './store.js';
 
 // --- CONFIGURAÇÃO DA API LOCAL ---
-//const API_BASE_URL = 'http://localhost:5000/api';
-const API_BASE_URL = 'https://localhost:5001/api';
+// Usamos HTTP puro (sem certificado): navegadores tratam localhost/127.0.0.1
+// como exceção ao bloqueio de "mixed content", então uma página HTTPS
+// (cdqweb.com.br) pode chamar http://localhost normalmente.
+const API_BASE_URL = 'http://localhost:5000/api';
 let performanceInterval = null;
 let keyboardInterval = null;
 

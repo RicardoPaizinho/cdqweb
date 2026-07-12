@@ -42,19 +42,8 @@ onMounted(() => {
 
 <template>
   <div class="app-container">
-    <nav class="custom-title-bar">
-      <div class="drag-region" @mousedown="dragApp">
-        <span class="app-title tech-font">HARDWARE DIAG V2.0</span>
-      </div>
-      <div class="topbar-center" @mousedown.stop>
-        <StepsProgress v-if="isAuthenticated && activeWindow === 'diagnostico'" />
-      </div>
-      <div class="window-controls" @mousedown.stop>
-        <button @click.prevent="minimizeApp" class="ctrl-btn">─</button>
-        <button @click.prevent="maximizeApp" class="ctrl-btn">▢</button>
-        <button @click.prevent="closeApp" class="ctrl-btn close-hover">✕</button>
-      </div>
-    </nav>
+
+
 
     <!-- TELA DE LOGIN -->
     <div v-if="!isAuthenticated" class="login-screen">

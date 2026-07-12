@@ -4,7 +4,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
 // --- CONFIGURAÇÃO DA API LOCAL (agente C#) ---
-const API_BASE_URL = 'https://localhost:5001/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 const POLL_INTERVAL_MS = 3000;
 
 const data = ref(null);
@@ -19,7 +19,7 @@ const updateData = async () => {
     data.value = await response.json();
     connectionError.value = '';
   } catch (err) {
-    connectionError.value = 'Não foi possível conectar ao agente local (porta 5001). Verifique se o HardwareTestApp está em execução.';
+    connectionError.value = 'Não foi possível conectar ao agente local (porta 5000). Verifique se o HardwareTestApp está em execução.';
     console.error('Falha na atualização de rede:', err);
   } finally {
     loading.value = false;
