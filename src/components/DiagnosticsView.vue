@@ -475,10 +475,24 @@ window.addEventListener('progress-style-changed', (event) => {
                 </div>
               </div>
                    
-              <div class="info-card"><h3>{{ globalState.t('hardware.armazenamento') }}</h3><p v-for="item in card_armazenamento" :key="item">{{ item }}</p></div>
+              <div class="info-card-container" :class="{ 'is-flipped': flippedCard === 'memory' }" @click="toggleFlip('memory')">
+                <div class="info-card-inner">
+                  <div class="info-card-front">
+                    <h3>{{ globalState.t('hardware.memoria') }}</h3>
+                    <p>{{ card_memoriaTotal  }}</p>
+                    <div class="click-hint" style="font-size: 0.5rem; color: #444; margin-top: auto; text-align: right;">DETALHES +</div>
+                  </div>
+                  
+                </div>
+              </div>
+
+
+              <div class="info-card-container"><h3>{{ globalState.t('hardware.armazenamento') }}</h3><p v-for="item in card_armazenamento" :key="item">{{ item }}</p></div>
+              
+              
               <div class="info-card"><h3>{{ globalState.t('hardware.gpu') }}</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
               <div class="info-card"><h3>{{ globalState.t('hardware.lcd') }}</h3><p>{{ card_lcd }}</p></div>
-              <div class="info-card"><h3>Mostrar todos detalhes</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></div>
+              <!--div class="info-card"><h3>Mostrar todos detalhes</h3><p v-for="item in card_placaVideo" :key="item">{{ item }}</p></!--div--> 
 
             </div>
           </div>
