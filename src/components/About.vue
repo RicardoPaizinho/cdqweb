@@ -8,21 +8,19 @@
 
         <div class="about-header">
           <div class="header-line"></div>
-          <h2>SYSTEM DIAGNOSTIC SUITE</h2>
-          <p class="tagline">Engine de Monitoramento Avançado</p>
+          <h2>CdQ</h2>
+          <p class="tagline">Comprehensive Diagnostic & Quality</p>
         </div>
         
         <div class="about-content">
           <p class="description">
-            Uma solução de hardware-aware projetada para o ecossistema de informática moderno. 
-            Integramos diagnóstico de baixo nível com visualização interativa para transformar 
-            dados técnicos em decisões inteligentes.
+            {{globalState.t('popupSobre.descricao')}}
           </p>
           
           <div class="specs-grid">
             <div class="spec-item">
               <span class="label">BUILD</span>
-              <span class="value">v1.0.4-release</span>
+              <span class="value">v3.0.0-release</span>
             </div>
             <div class="spec-item">
               <span class="label">DESENVOLVIMENTO</span>
@@ -33,17 +31,17 @@
               <span class="value active-text">KERNEL ACTIVE</span>
             </div>
             <div class="spec-item">
-              <span class="label">LICENSE</span>
-              <span class="value">PROFESSIONAL</span>
+              <span class="label">LICENSED TO</span>
+              <span class="value">CNS</span>
             </div>
           </div>
         </div>
 
         <div class="about-footer">
-          <a href="mailto:suporte@exemplo.com" class="contact-link">
-            📩 suporte@exemplo.com
+          <a href="mailto:paizinho.86@gmail.com" class="contact-link">
+            📩 paizinho.86@gmail.com
           </a>
-          <button @click="$emit('close')" class="btn-close-about">FECHAR</button>
+          <button @click="$emit('close')" class="btn-close-about">      {{globalState.t('popupSobre.botao')}}</button>
         </div>
       </div>
     </div>
@@ -51,11 +49,13 @@
 </template>
 
 <script setup>
+
 defineProps({
   isOpen: Boolean
 });
 
 defineEmits(['close']);
+import { globalState } from '../store.js';
 </script>
 
 <style scoped>
@@ -107,11 +107,11 @@ defineEmits(['close']);
   50% { height: 100%; opacity: 1; }
 }
 
-.header-line { width: 40px; height: 3px; background: var(--accent);; margin-bottom: 12px; }
+.header-line { width: 44px; height: 3px; background: var(--accent);; margin-bottom: 12px; }
 
 h2 {
   font-family: 'Orbitron', sans-serif;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   letter-spacing: 2px;
   color: var(--accent);;
   margin: 0;

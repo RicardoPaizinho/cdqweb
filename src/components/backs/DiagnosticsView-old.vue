@@ -13,7 +13,7 @@ import StepsProgress from '@/components/StepsProgress.vue';
 import ConfiguraView from '@/components/ConfiguraView.vue';
 import Monitor from '@/components/Monitor.vue';
 import About from './About.vue';
-import { globalState } from '../store.js';
+import { globalState } from '../../store.js';
 
 // --- CONFIGURAÇÃO DAS APIS (LOCAL E PRODUÇÃO) ---
 const API_BASE_URL = 'https://localhost:5001/api';

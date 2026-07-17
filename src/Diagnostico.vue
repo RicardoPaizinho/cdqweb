@@ -256,14 +256,14 @@ window.addEventListener('progress-style-changed', (event) => {
             <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.informacoes')}}</span>
           </button>
 
-          <button class="menu-item" :class="{ active: activeMenu === 'relatorios' }" @click="setActiveMenu('relatorios')">
-            <Icons name="save" size="32" class="menu-icon" />
-            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.reports')}}</span>
-          </button>
-
           <button class="menu-item" :class="{ active: activeMenu === 'testes' || activeMenu === 'LogoView' }" @click="setActiveMenu('testes')">
             <Icons name="test-list" size="32" class="menu-icon" />
             <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.peripherals')}}</span>
+          </button>
+
+          <button class="menu-item" :class="{ active: activeMenu === 'relatorios' }" @click="setActiveMenu('relatorios')">
+            <Icons name="save" size="32" class="menu-icon" />
+            <span v-if="leftSidebarExpanded" class="menu-text">{{globalState.t('titles.reports')}}</span>
           </button>
 
           <button class="menu-item" :class="{ active: activeMenu === 'Diags' }" @click="setActiveMenu('Diags')">

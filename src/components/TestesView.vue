@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { globalState } from '@/store.js';
 
+
 // Importação dos componentes de teste
 import SpeakerTest from '@/components/tests/SpeakerTest.vue'
 import MicTest from '@/components/tests/MicTest.vue'
@@ -40,18 +41,18 @@ const getResultClass = (testKey) => {
 };
 
 const testButtons = [
-  { key: 'lcd', title: 'LCD', icon: 'lcd' },
-  { key: 'touchpad', title: 'Touchpad', icon: 'touchpad' },
-  { key: 'teclado', title: 'Teclado', icon: 'keyboard' },
-  { key: 'microfone', title: 'Microfone', icon: 'mic' },
-  { key: 'speaker', title: 'Speaker', icon: 'speaker' },
-  { key: 'webcam', title: 'Webcam', icon: 'webcam' },
-  { key: 'redes', title: 'Redes', icon: 'network' },
-  { key: 'battery', title: 'Bateria', icon: 'battery' }, // Usei 'battery' como placeholder
-  { key: 'joystick', title: 'Joystick', icon: 'joystick' }, // Usei 'joystick' como placeholder
-  { key: 'usb', title: 'Portas USB', icon: 'usb' },
-  { key: 'touchscreen', title: 'Touchscreen', icon: 'touchscreen' },
-  { key: 'auto', title: 'Teste Automático', icon: 'test-list' },
+  { key: 'lcd', title: globalState.t('hardware.lcd'), icon: 'lcd' },
+  { key: 'touchpad', title: globalState.t('hardware.touchpad'), icon: 'touchpad' },
+  { key: 'teclado', title: globalState.t('hardware.keyboard'), icon: 'keyboard' },
+  { key: 'microfone', title: globalState.t('hardware.mic'), icon: 'mic' },
+  { key: 'speaker', title: globalState.t('hardware.speaker'), icon: 'speaker' },
+  { key: 'webcam', title: globalState.t('hardware.webcam'), icon: 'webcam' },
+  { key: 'redes', title: globalState.t('hardware.network'), icon: 'network' },
+  { key: 'battery', title: globalState.t('hardware.battery'), icon: 'battery' }, // Usei 'battery' como placeholder
+  { key: 'joystick', title: globalState.t('hardware.joystick'), icon: 'joystick' }, // Usei 'joystick' como placeholder
+  { key: 'usb', title: globalState.t('hardware.usb'), icon: 'usb' },
+  { key: 'touchscreen', title: globalState.t('hardware.touchscreen'), icon: 'touchscreen' },
+  { key: 'auto', title: globalState.t('hardware.auto_test'), icon: 'test-list' },
 ];
 </script>
 
@@ -71,7 +72,7 @@ const testButtons = [
           <h3>{{ test.title }}</h3>
           
           <p class="result-label" v-if="globalState.testResults[test.key]">
-            {{ globalState.testResults[test.key].result || 'Aguardando' }}
+            {{ globalState.testResults[test.key].result || globalState.t('status.waiting') }}
           </p>
         </button>
       </div>
