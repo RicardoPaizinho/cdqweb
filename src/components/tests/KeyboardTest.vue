@@ -44,9 +44,8 @@ const getKeyStatus = (code) => {
   return '';
 };
 
-// Mapeia os dados vindo do evento customizado do navegador (Long Polling do App.vue)
 const handleNativeKey = (event) => {
-  const vkCode = event.detail; // Recebe o número puro da tecla (ex: 91)
+  const vkCode = event.detail; 
   let code = '';
   
   if (vkCode === 91) code = 'MetaLeft';
@@ -59,7 +58,6 @@ const handleNativeKey = (event) => {
     currentKey.code = code;
     if (!historyArray.value.includes(code)) historyArray.value.push(code);
     
-    // Pequeno delay visual para simular o "pressionado" no layout gráfico
     setTimeout(() => activeKeys.value.delete(code), 250);
     nextTick(() => { if(historyRef.value) historyRef.value.scrollLeft = historyRef.value.scrollWidth; });
   }
@@ -83,12 +81,9 @@ const handlePass = () => emit('test-completed', 'PASS');
 const handleFail = () => emit('test-completed', 'FAIL');
 const goBack = () => emit('test-cancelled');
 
-// --- EVENTOS WEB PUROS ---
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
-  
-  // Escuta o evento que criamos no App.vue contendo as teclas travadas pelo C#
   window.addEventListener('native-key-pressed', handleNativeKey);
 });
 
@@ -106,10 +101,26 @@ onUnmounted(() => {
         <h4 class="tech-font">DIAGNÓSTICO: <span class="text-accent">TECLADO ABNT2</span></h4>
         <button class="btn-glass back-neon tech-font" @click="goBack">SAIR DO TESTE</button>
       </div>
-      <div class="stats-group tech-font">
-        TECLAS: <span :class="{ 'text-success': canPass }">{{ testedKeys.size }}</span> / 74
-        <span class="divider">|</span>
-        LAST: <span class="text-accent">{{ currentKey.code || '---' }}</span>
+      
+      <!-- Controles Superiores Unificados -->
+      <div class="header-controls">
+        <div class="stats-group tech-font">
+          TECLAS: <span :class="{ 'text-success': canPass }">{{ testedKeys.size }}</span> / 74
+          <span class="divider">|</span>
+          LAST: <span class="text-accent">{{ currentKey.code || '---' }}</span>
+        </div>
+        <div class="decision-group">
+          <button 
+            class="btn-header pass-neon tech-font" 
+            :disabled="!canPass" 
+            @click="handlePass"
+          >
+            PASS
+          </button>
+          <button class="btn-header fail-neon tech-font" @click="handleFail">
+            FAIL
+          </button>
+        </div>
       </div>
     </header>
 
@@ -166,9 +177,7 @@ onUnmounted(() => {
     </main>
 
     <footer class="keyboard-footer">
-      <button class="btn-action fail" @click="handleFail">FALHA NO TECLADO</button>
       <p class="instruction tech-font">Mínimo 74 teclas para aprovação. Windows Key e Sleep são testados via Hook.</p>
-      <button class="btn-action pass" :disabled="!canPass" @click="handlePass">APROVAR TECLADO</button>
     </footer>
   </div>
 </template>
@@ -186,6 +195,13 @@ onUnmounted(() => {
   border-bottom: 1px solid #1f2833; padding-bottom: 10px;
 }
 
+.header-controls { display: flex; align-items: center; gap: 25px; }
+.decision-group { display: flex; gap: 10px; }
+.stats-group { display: flex; align-items: center; gap: 8px; color: #8b949e; font-size: 0.85rem; }
+.divider { color: #1f2833; margin: 0 4px; }
+.text-accent { color: var(--accent); }
+.text-success { color: #3fb950; }
+
 .keyboard-main-content {
   flex: 1; display: flex; flex-direction: column;
   background: rgba(255, 255, 255, 0.02);
@@ -196,21 +212,15 @@ onUnmounted(() => {
   flex: 1; display: flex; align-items: center; justify-content: center;
 }
 
-/* ALINHAMENTO DAS SEÇÕES EM LINHA */
 .keyboard-wrapper {
   display: flex;
-  flex-direction: row; /* CORREÇÃO: Lado a lado */
+  flex-direction: row; 
   gap: 20px;
   transform: scale(0.95);
 }
 
-.keyboard-section {
-  display: flex; flex-direction: column; gap: 4px;
-}
-
-.row {
-  display: flex; flex-direction: row; gap: 4px;
-}
+.keyboard-section { display: flex; flex-direction: column; gap: 4px; }
+.row { display: flex; flex-direction: row; gap: 4px; }
 
 /* ESTILO DAS TECLAS */
 .key-cap {
@@ -261,10 +271,51 @@ onUnmounted(() => {
 }
 .history-stream { flex: 1; display: flex; gap: 5px; overflow-x: auto; }
 .log-tag { background: #21262d; color: #c9d1d9; padding: 2px 8px; border-radius: 3px; font-size: 0.7rem; }
+.btn-mini-reset {
+  background: none; border: 1px solid #30363d; color: #8b949e;
+  font-size: 0.65rem; padding: 4px 10px; border-radius: 4px; cursor: pointer;
+}
 
-.keyboard-footer { display: flex; justify-content: space-between; align-items: center; }
-.btn-action { padding: 12px 30px; border-radius: 6px; font-weight: bold; cursor: pointer; border: 1px solid; }
-.btn-action.pass { background: rgba(35,134,54,0.1); border-color: #238636; color: #3fb950; }
-.btn-action.fail { background: rgba(248,81,73,0.1); border-color: #f85149; color: #f85149; }
-.btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
+.keyboard-footer { 
+  display: flex; justify-content: center; align-items: center; 
+  padding-top: 5px; border-top: 1px solid #1f2833;
+}
+.instruction { font-size: 0.7rem; color: #8b949e; margin: 0; text-align: center; }
+
+/* =========================================================
+   ESTILOS PADRONIZADOS (IDÊNTICO AO DE MOUSE)
+   ========================================================= */
+
+/* Botão Voltar (Top) */
+.btn-glass.back-neon {
+  padding: 6px 18px; border-radius: 4px; font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c9d1d9; cursor: pointer; transition: 0.3s;
+}
+.btn-glass.back-neon:hover {
+  box-shadow: 0 0 15px rgba(63, 185, 80, 0.3); color: #3fb950; border-color: #238636;
+}
+
+/* Botões de controle horizontal no Header */
+.btn-header {
+  padding: 6px 20px; font-size: 0.8rem;
+  border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05); color: #c9d1d9;
+  cursor: pointer; transition: 0.3s; display: flex;
+  align-items: center; justify-content: center;
+}
+
+.pass-neon:disabled { opacity: 0.1; cursor: not-allowed; border-color: transparent; }
+
+.pass-neon:hover:not(:disabled) {
+  background: rgba(35, 134, 54, 0.15); color: #3fb950;
+  border-color: #238636; box-shadow: 0 0 15px rgba(35, 134, 54, 0.4);
+}
+
+.fail-neon:hover {
+  background: rgba(248, 81, 73, 0.15); color: #f85149;
+  border-color: #f85149; box-shadow: 0 0 15px rgba(248, 81, 73, 0.4);
+}
+
+.card-glass { background: rgba(255,255,255,0.02); border: 1px solid #30363d; border-radius: 12px; }
 </style>

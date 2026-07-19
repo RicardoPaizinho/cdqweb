@@ -577,9 +577,9 @@ window.addEventListener('progress-style-changed', (event) => {
 
 .menu-item.active {
   background-color: var(--accent);
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 4px 12px var(--accent-glow);
+  color: #faf8f8;
+  font-weight: 900;
+  box-shadow: 0 8px 12px var(BLACK, 0.7);
 }
 
 .menu-icon {

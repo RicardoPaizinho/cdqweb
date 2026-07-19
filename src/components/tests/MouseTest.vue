@@ -5,8 +5,24 @@
         <h4 class="tech-font">TESTE DE TOUCHPAD / MOUSE</h4>
         <button class="btn-glass back-neon tech-font" @click="goBack">VOLTAR</button>
       </div>
-      <div class="device-mini-info tech-font">
-        STATUS: {{ allDone ? 'PRONTO' : 'EXECUTANDO' }}
+      
+      <!-- Grupo de Controle Superior Centralizado/Direita -->
+      <div class="header-controls">
+        <div class="device-mini-info tech-font">
+          STATUS: {{ allDone ? 'PRONTO' : 'EXECUTANDO' }}
+        </div>
+        <div class="decision-group">
+          <button 
+            class="btn-header pass-neon tech-font" 
+            :disabled="!allDone"
+            @click="endTest('PASS')"
+          >
+            PASS
+          </button>
+          <button class="btn-header fail-neon tech-font" @click="endTest('FAIL')">
+            FAIL
+          </button>
+        </div>
       </div>
     </header>
 
@@ -72,19 +88,6 @@
           </div>
         </div>
       </div>
-
-      <aside class="decision-sidebar">
-        <button 
-          class="btn-sidebar pass-neon tech-font" 
-          :disabled="!allDone"
-          @click="endTest('PASS')"
-        >
-          PASS
-        </button>
-        <button class="btn-sidebar fail-neon tech-font" @click="endTest('FAIL')">
-          FAIL
-        </button>
-      </aside>
     </div>
   </div>
 </template>
@@ -191,8 +194,11 @@ onUnmounted(() => {
 .title-group { display: flex; align-items: center; gap: 20px; }
 .title-group h4 { margin: 0; color: var(--accent); text-transform: uppercase; }
 
-/* LAYOUT PRINCIPAL */
-.main-layout { display: grid; grid-template-columns: 1fr 100px; gap: 20px; flex-grow: 1; }
+.header-controls { display: flex; align-items: center; gap: 20px; }
+.decision-group { display: flex; gap: 10px; }
+
+/* LAYOUT PRINCIPAL (Ocupa largura total agora) */
+.main-layout { display: grid; grid-template-columns: 1fr; gap: 20px; flex-grow: 1; }
 
 /* PAINEL GLASS */
 .glass-panel {
@@ -252,7 +258,7 @@ onUnmounted(() => {
 .check-item .label { font-size: 0.6rem; color: var(--text-main); }
 
 /* =========================================================
-   ESTILOS PADRONIZADOS (PARA COPIAR EM TODOS OS TESTES)
+   ESTILOS PADRONIZADOS MODIFICADOS (BOTOES NO HEADER)
    ========================================================= */
 
 /* Botão Voltar (Top) */
@@ -265,15 +271,10 @@ onUnmounted(() => {
   box-shadow: 0 0 15px var(--accent-glow); color: var(--accent); border-color: var(--accent);
 }
 
-/* Sidebar e Botões de Decisão (Direita) */
-.decision-sidebar {
-  display: flex; flex-direction: column; gap: 15px;
-  align-items: flex-end; /* Garante que fiquem alinhados à direita */
-}
-
-.btn-sidebar {
-  width: 100px; height: 100px; /* Tamanho fixo padronizado */
-  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+/* Novos botões de controle horizontal no Header */
+.btn-header {
+  padding: 6px 20px; font-size: 0.8rem;
+  border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05); color: var(--text-main);
   cursor: pointer; transition: 0.3s; display: flex;
   align-items: center; justify-content: center;
@@ -283,12 +284,12 @@ onUnmounted(() => {
 
 .pass-neon:hover:not(:disabled) {
   background: rgba(78, 205, 196, 0.15); color: var(--text-success);
-  border-color: var(--text-success); box-shadow: 0 0 25px var(--status-pass-glow);
+  border-color: var(--text-success); box-shadow: 0 0 15px var(--status-pass-glow);
 }
 
 .fail-neon:hover {
   background: rgba(231, 76, 60, 0.15); color: #ff4d4d;
-  border-color: #ff4d4d; box-shadow: 0 0 25px var(--status-fail-glow);
+  border-color: #ff4d4d; box-shadow: 0 0 15px var(--status-fail-glow);
 }
 
 .card-glass { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; }
