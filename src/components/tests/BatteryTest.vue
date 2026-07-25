@@ -60,7 +60,12 @@
         <!-- GRÁFICO DE CARGA AO LONGO DO TEMPO -->
         <div class="chart-section card-glass">
           <div class="chart-header">
-            <span class="tech-font mini-label">HISTÓRICO DE CARGA EM TEMPO REAL (%)</span>
+            <div class="chart-title-group">
+              <span class="tech-font mini-label">PROJEÇÃO E HISTÓRICO DE CARGA</span>
+              <span class="tech-font chart-subtext" v-if="isCharging && timeToFullMinutes">
+                ESTIMATIVA DE CARGA COMPLETA: ~{{ timeToFullMinutes }} MIN
+              </span>
+            </div>
             <span class="tech-font chart-points-count">{{ historyData.length }} PONTOS REGISTRADOS</span>
           </div>
 
@@ -68,21 +73,41 @@
             <svg viewBox="0 0 500 120" class="battery-chart">
               <defs>
                 <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="var(--accent, #00ff41)" stop-opacity="0.4" />
+                  <stop offset="0%" stop-color="var(--accent, #00ff41)" stop-opacity="0.35" />
+                  <stop offset="100%" stop-color="var(--accent, #00ff41)" stop-opacity="0.0" />
+                </linearGradient>
+                <linearGradient id="projectedGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--accent, #00ff41)" stop-opacity="0.15" />
                   <stop offset="100%" stop-color="var(--accent, #00ff41)" stop-opacity="0.0" />
                 </linearGradient>
               </defs>
 
               <!-- Linhas de grade horizontais (100%, 50%, 0%) -->
-              <line x1="0" y1="10" x2="500" y2="10" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+              <line x1="0" y1="10" x2="500" y2="10" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4" />
               <line x1="0" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-              <line x1="0" y1="110" x2="500" y2="110" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+              <line x1="0" y1="110" x2="500" y2="110" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4" />
 
-              <!-- Área Preenchida abaixo da Linha -->
+              <!-- Linha Vertical do Tempo Presente (Centro X=250) -->
+              <line x1="250" y1="0" x2="250" y2="120" stroke="rgba(0, 255, 65, 0.4)" stroke-dasharray="3,3" stroke-width="1.5" />
+              <text x="253" y="20" fill="rgba(0, 255, 65, 0.7)" font-size="8" class="tech-font">AGORA</text>
+              <text x="5" y="118" fill="rgba(255, 255, 255, 0.3)" font-size="7" class="tech-font">HISTÓRICO</text>
+              <text x="440" y="118" fill="rgba(0, 255, 65, 0.5)" font-size="7" class="tech-font">PROJEÇÃO</text>
+
+              <!-- Área Preenchida abaixo do Histórico -->
               <polygon v-if="chartAreaPath" :points="chartAreaPath" fill="url(#chartGradient)" />
 
-              <!-- Linha do Gráfico -->
+              <!-- Linha do Histórico (Passado - Lado Esquerdo) -->
               <polyline v-if="chartLinePoints" :points="chartLinePoints" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+              <!-- Área Preenchida da Projeção -->
+              <polygon v-if="projectionAreaPath" :points="projectionAreaPath" fill="url(#projectedGradient)" />
+
+              <!-- Linha da Projeção Esperada (Futuro - Lado Direito) -->
+              <polyline v-if="projectionLinePoints" :points="projectionLinePoints" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2" stroke-dasharray="4,4" stroke-opacity="0.8" />
+
+              <!-- Marcador de Carga Atual (Ponto Pulsante no Centro X=250) -->
+              <circle :cx="250" :cy="currentCenterY" r="4" fill="var(--accent, #00ff41)" />
+              <circle :cx="250" :cy="currentCenterY" r="8" fill="none" stroke="var(--accent, #00ff41)" stroke-width="1" class="pulse-circle" />
             </svg>
           </div>
         </div>
@@ -163,7 +188,7 @@ const emit = defineEmits(['test-completed', 'test-cancelled']);
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const POLL_INTERVAL_MS = 1500;
-const MAX_HISTORIC_POINTS = 40; // Limite de pontos exibidos no gráfico SVG
+const MAX_HISTORIC_POINTS = 30; // Pontos do histórico mapeados no lado esquerdo (X: 0 -> 250)
 
 const deviceName = ref('—');
 const manufacturerName = ref('—');
@@ -188,7 +213,7 @@ const batteryDetected = ref(false);
 const hasDetectedCharging = ref(false);
 const hasDetectedDischarging = ref(false);
 
-// Histórico para o Gráfico SVG
+// Histórico do Gráfico
 const historyData = ref([]);
 
 let pollTimer = null;
@@ -208,17 +233,33 @@ function fmt(value, digits = 2) {
   return typeof value === 'number' ? value.toFixed(digits) : '—';
 }
 
-// Lógica de Renderização do Gráfico SVG (Mapeamento de 0..100% para o SVG 10..110 Y)
-const chartLinePoints = computed(() => {
-  if (historyData.value.length === 0) return '';
-  const svgWidth = 500;
-  const svgHeight = 100; // de Y=10 (100%) a Y=110 (0%)
-  const count = historyData.value.length;
+// Posição Y da Carga Atual no Centro (X = 250)
+const currentCenterY = computed(() => {
+  const pct = currentCapacityPercent.value || 0;
+  return 110 - (pct / 100) * 100;
+});
 
+// Tempo Estimado até Carga Completa (em minutos)
+const timeToFullMinutes = computed(() => {
+  if (!isCharging.value || !chargeRateW.value || chargeRateW.value <= 0) return null;
+  if (!fullChargeCapacityWh.value || !currentCapacityWh.value) return null;
+
+  const remainingWh = fullChargeCapacityWh.value - currentCapacityWh.value;
+  if (remainingWh <= 0) return 0;
+
+  const hours = remainingWh / chargeRateW.value;
+  return Math.round(hours * 60);
+});
+
+// --- LÓGICA DO HISTÓRICO (LADO ESQUERDO: X de 0 a 250) ---
+const chartLinePoints = computed(() => {
+  if (historyData.value.length === 0) return `0,${currentCenterY.value} 250,${currentCenterY.value}`;
+  
+  const count = historyData.value.length;
   return historyData.value.map((val, idx) => {
-    const x = count > 1 ? (idx / (count - 1)) * svgWidth : svgWidth;
-    // Inverte o eixo Y (100% fica no topo Y=10 e 0% no fundo Y=110)
-    const y = 110 - (val / 100) * svgHeight;
+    // Mapeia os pontos do histórico do limite esquerdo (0) até o centro (250)
+    const x = count > 1 ? (idx / (count - 1)) * 250 : 250;
+    const y = 110 - (val / 100) * 100;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
 });
@@ -226,9 +267,49 @@ const chartLinePoints = computed(() => {
 const chartAreaPath = computed(() => {
   const linePoints = chartLinePoints.value;
   if (!linePoints) return '';
-  const count = historyData.value.length;
-  const lastX = count > 1 ? 500 : 500;
-  return `0,110 ${linePoints} ${lastX},110`;
+  return `0,110 ${linePoints} 250,110`;
+});
+
+// --- LÓGICA DA PROJEÇÃO FUTURA (LADO DIREITO: X de 250 a 500) ---
+const projectionPointsArray = computed(() => {
+  const startY = currentCenterY.value;
+  const currentPct = currentCapacityPercent.value || 0;
+
+  // Se estiver carregando, projetamos a subida gradual até 100%
+  let targetPct = currentPct;
+  if (isCharging.value) {
+    // Se temos a taxa de carga W, projetamos uma inclinação calculada; caso contrário, projetamos a subida até 100%
+    targetPct = 100;
+  } else if (isDischarging.value) {
+    targetPct = 0; // Se descarregando, projeta descida
+  }
+
+  const points = [];
+  const steps = 10;
+  
+  for (let i = 0; i <= steps; i++) {
+    const progress = i / steps;
+    const x = 250 + progress * 250; // De X=250 a X=500
+    
+    // Curva de projeção suave (Ease-Out para simular desaceleração de carga perto do final)
+    const factor = isCharging.value ? Math.sin((progress * Math.PI) / 2) : progress;
+    const interpolatedPct = currentPct + (targetPct - currentPct) * factor;
+    const y = 110 - (interpolatedPct / 100) * 100;
+
+    points.push({ x: x.toFixed(1), y: y.toFixed(1) });
+  }
+
+  return points;
+});
+
+const projectionLinePoints = computed(() => {
+  return projectionPointsArray.value.map(p => `${p.x},${p.y}`).join(' ');
+});
+
+const projectionAreaPath = computed(() => {
+  const points = projectionLinePoints.value;
+  if (!points) return '';
+  return `250,110 ${points} 500,110`;
 });
 
 async function fetchBatteryData() {
@@ -271,7 +352,7 @@ async function fetchBatteryData() {
     if (isCharging.value) hasDetectedCharging.value = true;
     if (isDischarging.value) hasDetectedDischarging.value = true;
 
-    // Registra Ponto no Histórico do Gráfico
+    // Adiciona o Ponto no Histórico
     historyData.value.push(pct);
     if (historyData.value.length > MAX_HISTORIC_POINTS) {
       historyData.value.shift();
@@ -391,9 +472,22 @@ const goBack = () => emit('test-cancelled');
   display: flex; flex-direction: column; gap: 10px;
 }
 .chart-header { display: flex; justify-content: space-between; align-items: center; }
+.chart-title-group { display: flex; flex-direction: column; gap: 2px; }
+.chart-subtext { font-size: 0.65rem; color: var(--accent, #00ff41); }
 .chart-points-count { font-size: 0.65rem; color: var(--text-dim, #777); }
-.svg-container { width: 100%; height: 120px; }
+.svg-container { width: 100%; height: 130px; }
 .battery-chart { width: 100%; height: 100%; overflow: visible; }
+
+/* Animação do Ponto do Centro */
+.pulse-circle {
+  animation: pulseAnim 1.8s infinite ease-out;
+  transform-origin: center;
+}
+
+@keyframes pulseAnim {
+  0% { r: 4px; opacity: 1; }
+  100% { r: 14px; opacity: 0; }
+}
 
 /* TABELA */
 .data-table { width: 100%; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; }

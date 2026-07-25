@@ -101,10 +101,10 @@ const setTheme = (themeId) => {
 const currentProgressStyle = ref(localStorage.getItem('progress-style') || 'progress-01');
 
 const progressStyles = [
-  { id: 'progress-01', name: 'CLÁSSICO' },
-  { id: 'progress-02', name: 'HORIZONTAL' },
-  { id: 'progress-03', name: 'FLAME' },
-  { id: 'progress-04', name: 'CYBER' },
+  { id: 'progress-01', name: 'Classic' },
+  { id: 'progress-02', name: 'Horizontal' },
+  { id: 'progress-03', name: 'Speed' },
+  { id: 'progress-04', name: 'Cyber' },
 ];
 
 const setProgressStyle = (styleId) => {
