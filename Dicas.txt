@@ -11,6 +11,7 @@ npm run build - cria a pasta dist com o projeto pronto pta usar no webview
 para testar no celular ou outro pc porque por padrao ele bloqueia
 npm run dev -- --host
 
+Ícone de Laptop by Nishanth kunder on <a href="https://icon-icons.com/pt/authors/222-nishanth-kunder">Icon-Icons.com</a>
 
 
       

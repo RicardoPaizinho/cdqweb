@@ -3,10 +3,28 @@
     <header class="test-header">
       <div class="title-group">
         <h4 class="tech-font">DIAGNÓSTICO AUTOMÁTICO: SPEAKER & MIC</h4>
-        <button class="btn-glass back-neon tech-font" @click="goBack">VOLTAR</button>
+        <button class="btn-default tech-font" @click="goBack">VOLTAR</button>
       </div>
+      
+      <!-- Botões de controle movidos para o topo -->
+      <div class="controls-group">
+        <button 
+          class="btn-success tech-font" 
+          @click="startFullTest" 
+          :disabled="testInProgress || !selectedNote"
+        >
+          INICIAR TESTE
+        </button>
+        <button 
+          class="btn-danger tech-font" 
+          @click="endTest('FAIL')"
+        >
+          FALHA MANUAL
+        </button>
+      </div>
+
       <div class="device-mini-info tech-font">
-        <span v-if="testInProgress" class="status-blink text-accent">ANALISANDO FREQUÊNCIAS...</span>
+        <span v-if="testInProgress" class="status-blink text-warning">ANALISANDO FREQUÊNCIAS...</span>
         <span v-else class="text-dim">AGUARDANDO START</span>
       </div>
     </header>
@@ -18,7 +36,7 @@
           <canvas ref="canvasRef" class="waveform-canvas card-glass" width="600" height="180"></canvas>
           <div class="freq-display tech-font">
             <span class="freq-label">SINAL CAPTADO:</span>
-            <span :class="['freq-value', { 'text-active': currentFreq > 0 }]">
+            <span :class="['freq-value', { 'text-success': currentFreq > 0 }]">
               {{ currentFreq > 0 ? currentFreq.toFixed(2) + ' Hz' : '---' }}
             </span>
           </div>
@@ -62,15 +80,6 @@
           <p>{{ finalResult.msg }}</p>
         </div>
       </div>
-
-      <aside class="decision-sidebar">
-        <button class="btn-sidebar start-neon tech-font" @click="startFullTest" :disabled="testInProgress || !selectedNote">
-          INICIAR<br>TESTE
-        </button>
-        <button class="btn-sidebar fail-neon tech-font" @click="endTest('FAIL')">
-          FALHA<br>MANUAL
-        </button>
-      </aside>
     </div>
   </div>
 </template>
@@ -113,7 +122,7 @@ async function initAudio() {
     });
     const source = audioCtx.createMediaStreamSource(stream);
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 4096; // Alta precisão para frequências
+    analyser.fftSize = 4096; 
     source.connect(analyser);
     drawSpectrogram();
   } catch (e) {
@@ -132,7 +141,6 @@ function drawSpectrogram() {
     animationId = requestAnimationFrame(render);
     analyser.getByteFrequencyData(dataArray);
     
-    // Limpar Canvas
     ctx.fillStyle = '#10181d';
     ctx.fillRect(0, 0, canvasRef.value.width, canvasRef.value.height);
     
@@ -153,7 +161,6 @@ function drawSpectrogram() {
       x += barWidth + 1;
     }
 
-    // Filtro de Ruído: Só reconhece frequência se o volume for alto (> 110)
     if (maxVal > 110) {
       currentFreq.value = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
     } else {
@@ -175,9 +182,9 @@ function playTone(freq, channel) {
   panner.pan.value = channel === 'left' ? -1 : 1;
   
   gain.gain.setValueAtTime(0, audioCtx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.7, audioCtx.currentTime + 0.2); // Fade In
-  gain.gain.setValueAtTime(0.7, audioCtx.currentTime + duration - 0.5); // Sustain
-  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration); // Fade Out
+  gain.gain.linearRampToValueAtTime(0.7, audioCtx.currentTime + 0.2); 
+  gain.gain.setValueAtTime(0.7, audioCtx.currentTime + duration - 0.5); 
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration); 
 
   osc.connect(panner);
   panner.connect(gain);
@@ -199,7 +206,6 @@ async function startFullTest() {
     let samples = [];
     playTone(selectedNote.value.freq, side);
 
-    // Monitora a frequência durante o tempo de reprodução
     const checkInterval = setInterval(() => {
       if (currentFreq.value > 0) samples.push(currentFreq.value);
     }, 100);
@@ -207,7 +213,6 @@ async function startFullTest() {
     return new Promise(resolve => {
       setTimeout(() => {
         clearInterval(checkInterval);
-        // Pega a média das capturas para maior precisão
         if (samples.length > 0) {
           const sum = samples.reduce((a, b) => a + b, 0);
           capturedFreqs.value[side] = sum / samples.length;
@@ -220,7 +225,7 @@ async function startFullTest() {
   };
 
   await runChannel('left');
-  await new Promise(r => setTimeout(r, 800)); // Pausa entre canais
+  await new Promise(r => setTimeout(r, 800)); 
   await runChannel('right');
 
   evaluateResult();
@@ -229,7 +234,7 @@ async function startFullTest() {
 
 function evaluateResult() {
   const target = selectedNote.value.freq;
-  const margin = target * 0.18; // 18% de tolerância
+  const margin = target * 0.18; 
 
   const lPass = Math.abs(capturedFreqs.value.left - target) < margin;
   const rPass = Math.abs(capturedFreqs.value.right - target) < margin;
@@ -256,7 +261,19 @@ const formatResult = (val) => {
   return val > 0 ? val.toFixed(1) + ' Hz' : 'SEM SINAL';
 };
 
-const endTest = (res) => { stopAll(); emit('test-completed', res); };
+// Modificado para aplicar o status tanto para mic quanto para speaker no seu CDQInfo/CDQWeb
+const endTest = (res) => { 
+  stopAll(); 
+  
+  if (res === 'PASS') {
+    // Emite aprovação sequencial para ambos os escopos do relatório
+    emit('test-completed', { test: 'speaker', result: 'PASS' });
+    emit('test-completed', { test: 'microphone', result: 'PASS' });
+  } else {
+    emit('test-completed', { test: 'microphone', result: 'FAIL' });
+  }
+};
+
 const goBack = () => { stopAll(); emit('test-cancelled'); };
 
 function stopAll() {
@@ -273,7 +290,27 @@ onBeforeUnmount(stopAll);
 .test-container { display: flex; flex-direction: column; gap: 15px; color: #fff; height: 100%; padding: 15px; background: #0b1114; }
 .tech-font { font-family: 'Consolas', monospace; letter-spacing: 1px; }
 
-.main-layout { display: grid; grid-template-columns: 1fr 120px; gap: 20px; flex-grow: 1; }
+.test-header { display: flex; flex-direction: column; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.title-group { display: flex; justify-content: space-between; align-items: center; }
+
+/* Grupo de botões no topo */
+.controls-group { display: flex; gap: 10px; width: 100%; }
+.controls-group button { flex: 1; padding: 12px; font-weight: bold; cursor: pointer; border-radius: 6px; border: none; transition: 0.2s; }
+
+/* Classes de Cores Padrão */
+.btn-default { background: #334155; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.btn-default:hover { background: #475569; }
+.btn-success { background: #16a34a; color: #fff; }
+.btn-success:hover:not(:disabled) { background: #15803d; }
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-danger:hover { background: #b91c1c; }
+.btn-success:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.text-success { color: #22c55e; }
+.text-warning { color: #f59e0b; }
+.text-dim { color: #64748b; }
+
+.main-layout { display: flex; flex-direction: column; flex-grow: 1; }
 
 .glass-panel {
   background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px);
@@ -284,8 +321,7 @@ onBeforeUnmount(stopAll);
 .waveform-canvas { width: 100%; height: 180px; background: #000; border-radius: 8px; border: 1px solid #222; }
 
 .freq-display { text-align: center; margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; }
-.freq-value { font-size: 1.8rem; margin-left: 15px; color: #444; transition: 0.3s; }
-.text-active { color: #00ff41; text-shadow: 0 0 15px rgba(0,255,65,0.6); }
+.freq-value { font-size: 1.8rem; margin-left: 15px; transition: 0.3s; }
 
 .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
@@ -297,29 +333,19 @@ onBeforeUnmount(stopAll);
   flex: 1; padding: 8px; border: 1px solid rgba(255,255,255,0.1);
   background: rgba(255,255,255,0.05); color: #ccc; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
 }
-.note-btn.active { border-color: #00ff41; background: rgba(0,255,65,0.1); color: #00ff41; }
+.note-btn.active { border-color: #22c55e; background: rgba(34,197,94,0.1); color: #22c55e; }
 .note-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .channel-res { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .res-tag { padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; min-width: 80px; text-align: center; }
 .res-tag.wait { background: #222; color: #555; }
-.res-tag.pass { background: rgba(0,255,65,0.15); color: #00ff41; border: 1px solid #00ff41; }
-.res-tag.fail { background: rgba(255,77,77,0.15); color: #ff4d4d; border: 1px solid #ff4d4d; }
+.res-tag.pass { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; }
+.res-tag.fail { background: rgba(220,38,38,0.15); color: #dc2626; border: 1px solid #dc2626; }
 
 .final-banner { padding: 20px; border-radius: 8px; text-align: center; border-width: 2px; border-style: solid; }
-.final-banner.pass { background: rgba(0,255,65,0.05); border-color: #00ff41; color: #00ff41; }
-.final-banner.fail { background: rgba(255,77,77,0.05); border-color: #ff4d4d; color: #ff4d4d; }
+.final-banner.pass { background: rgba(34,197,94,0.05); border-color: #22c55e; color: #22c55e; }
+.final-banner.fail { background: rgba(220,38,38,0.05); border-color: #dc2626; color: #dc2626; }
 
-/* SIDEBAR PADRÃO */
-.decision-sidebar { display: flex; flex-direction: column; gap: 20px; justify-content: center; }
-.btn-sidebar {
-  width: 100px; height: 100px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; font-size: 0.75rem; transition: 0.3s;
-}
-.start-neon:not(:disabled):hover { border-color: #00ff41; color: #00ff41; box-shadow: 0 0 20px rgba(0,255,65,0.3); }
-.fail-neon:hover { border-color: #ff4d4d; color: #ff4d4d; box-shadow: 0 0 20px rgba(255,77,77,0.3); }
-.btn-sidebar:disabled { opacity: 0.3; filter: grayscale(1); }
-
-.status-blink { animation: blink 1.5s infinite; color: #ff9800; font-size: 0.8rem; }
+.status-blink { animation: blink 1.5s infinite; }
 @keyframes blink { 50% { opacity: 0.3; } }
 </style>

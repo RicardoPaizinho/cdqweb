@@ -12,8 +12,9 @@ const currentKey = reactive({ code: '' });
 const canPass = computed(() => testedKeys.value.size >= 74);
 
 // Layouts ABNT2 - Organizados por Seções
+
 const layoutMain = [
-  [{code:'Escape', label:'Esc'},{code:'F1', label:'F1'},{code:'F2', label:'F2'},{code:'F3', label:'F3'},{code:'F4', label:'F4'},{code:'F5', label:'F5'},{code:'F6', label:'F6'},{code:'F7', label:'F7'},{code:'F8', label:'F8'},{code:'F9', label:'F9'},{code:'F10', label:'F10'},{code:'F11', label:'F11'},{code:'F12', label:'F12'}],
+  [{code:'Escape', label:'Esc', class:'w-spec'},{code:'F1', label:'F1'},{code:'F2', label:'F2'},{code:'F3', label:'F3'},{code:'F4', label:'F4'},{code:'F5', label:'F5'},{code:'F6', label:'F6'},{code:'F7', label:'F7'},{code:'F8', label:'F8'},{code:'F9', label:'F9'},{code:'F10', label:'F10'},{code:'F11', label:'F11'},{code:'F12', label:'F12'}],
   [{code:'Backquote', label:'\''},{code:'Digit1', label:'1'},{code:'Digit2', label:'2'},{code:'Digit3', label:'3'},{code:'Digit4', label:'4'},{code:'Digit5', label:'5'},{code:'Digit6', label:'6'},{code:'Digit7', label:'7'},{code:'Digit8', label:'8'},{code:'Digit9', label:'9'},{code:'Digit0', label:'0'},{code:'Minus', label:'-'},{code:'Equal', label:'='},{code:'Backspace', label:'←', class:'w-backspace'}],
   [{code:'Tab', label:'Tab', class:'w-tab'},{code:'KeyQ', label:'Q'},{code:'KeyW', label:'W'},{code:'KeyE', label:'E'},{code:'KeyR', label:'R'},{code:'KeyT', label:'T'},{code:'KeyY', label:'Y'},{code:'KeyU', label:'U'},{code:'KeyI', label:'I'},{code:'KeyO', label:'O'},{code:'KeyP', label:'P'},{code:'BracketLeft', label:'´'},{code:'BracketRight', label:'['},{code:'Enter', label:'Ent', class:'w-enter'}],
   [{code:'CapsLock', label:'Caps', class:'w-caps'},{code:'KeyA', label:'A'},{code:'KeyS', label:'S'},{code:'KeyD', label:'D'},{code:'KeyF', label:'F'},{code:'KeyG', label:'G'},{code:'KeyH', label:'H'},{code:'KeyJ', label:'J'},{code:'KeyK', label:'K'},{code:'KeyL', label:'L'},{code:'Semicolon', label:'Ç'},{code:'Quote', label:'~'},{code:'Backslash', label:']'}],
@@ -136,6 +137,8 @@ onUnmounted(() => {
       <div class="keyboard-viewport">
         <div class="keyboard-wrapper">
           
+
+          
           <div class="keyboard-section">
             <div v-for="(row, rIdx) in layoutMain" :key="'main-'+rIdx" class="row">
               <div 
@@ -250,15 +253,16 @@ onUnmounted(() => {
 .key-cap.tested .key-label { color: #3fb950; }
 
 /* LARGURAS ESPECÍFICAS */
-.w-backspace { width: 85px; }
+.w-backspace { width: 95px; }
 .w-tab { width: 65px; }
 .w-caps { width: 75px; }
-.w-enter { width: 85px; }
-.w-shift-l { width: 55px; }
-.w-shift-r { width: 105px; }
-.w-ctrl { width: 65px; }
-.w-space { width: 300px; }
+.w-enter { width: 76px; }
+.w-shift-l { width: 45px; }
+.w-shift-r { width: 100px; }
+.w-ctrl { width: 75px; }
+.w-space { width: 330px; }
 .w-n0 { width: 92px; }
+.w-spec { width: 92px; gap: 10px; padding: 10px }
 .h-2 { height: 92px; margin-bottom: -48px; z-index: 5; }
 
 /* UTILS */

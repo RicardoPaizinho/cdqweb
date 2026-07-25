@@ -36,6 +36,10 @@
         </div>
 
         <div v-else class="active-module-container">
+          <!-- 
+            Passamos a propriedade 'activeTest' se precisar dentro do filho, 
+            ou escutamos o objeto completo vindo do emit no handleModuleResult
+          -->
           <component 
             :is="currentModule" 
             @test-completed="handleModuleResult" 
@@ -84,16 +88,27 @@ const goBack = () => {
 };
 
 const handleModuleResult = (result) => {
-  if (result === 'PASS') {
-    emit('test-completed', 'PASS'); // Aprova e sai
+  // Caso o resultado seja um objeto (como implementado no emit anterior) ou string simples 'PASS'
+  const isPass = result === 'PASS' || (result && result.result === 'PASS') || result?.status === 'PASS';
+
+  if (isPass) {
+    if (activeTest.value === 'notes') {
+      // Se for o Auto Notes, aprova ambos e retorna ao menu interno de testes de áudio
+      emit('test-completed', { test: 'microphone', result: 'PASS' });
+      emit('test-completed', { test: 'speaker', result: 'PASS' });
+      activeTest.value = null; 
+    } else {
+      // Comportamento padrão para grava e loop: aprova apenas o mic e sai do diagnóstico
+      emit('test-completed', { test: 'microphone', result: 'PASS' });
+    }
   } else {
-    activeTest.value = null; // Se falhar, volta para tentar outro método
+    // Se falhar ou for reprovado manualmente, volta para o menu para tentar outro método
+    activeTest.value = null; 
   }
 };
 </script>
 
 <style scoped>
-/* Grid ajustada para o espaço interno do .test-content */
 .selection-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
