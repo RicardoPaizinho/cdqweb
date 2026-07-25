@@ -1,12 +1,16 @@
 <template>
   <div class="test-container">
     <header class="test-header">
-      <div class="title-group">
+      <!-- Lado Esquerdo: Título e Voltar lado a lado -->
+      <div class="header-left">
         <h4 class="tech-font">TESTE DE SAÍDA / SPEAKERS</h4>
         <button class="btn-glass back-neon tech-font" @click="goBack">VOLTAR</button>
       </div>
-      <div class="device-mini-info tech-font">
-        {{ devicesDetected ? 'OUTPUT: ACTIVE' : 'NO DEVICE FOUND' }}
+
+      <!-- Lado Direito: Botões Pass e Fail com transparência e brilho/glow -->
+      <div class="header-actions">
+        <button class="btn-glass pass-neon tech-font" @click="handleEnd('PASS')">PASS</button>
+        <button class="btn-glass fail-neon tech-font" @click="handleEnd('FAIL')">FAIL</button>
       </div>
     </header>
 
@@ -14,8 +18,13 @@
       <div class="test-content glass-panel speaker-main-area">
         
         <div class="device-banner card-glass">
-          <span class="mini-label tech-font">DISPOSITIVO DETECTADO:</span>
-          <strong class="tech-font text-accent">{{ audioDeviceName }}</strong>
+          <div class="banner-info">
+            <span class="mini-label tech-font">DISPOSITIVO DETECTADO:</span>
+            <strong class="tech-font text-accent">{{ audioDeviceName }}</strong>
+          </div>
+          <div class="device-mini-info tech-font">
+            {{ devicesDetected ? 'OUTPUT: ACTIVE' : 'NO DEVICE FOUND' }}
+          </div>
         </div>
 
         <div class="visualizer-viewport card-glass">
@@ -63,11 +72,6 @@
           </div>
         </div>
       </div>
-
-      <aside class="decision-sidebar">
-        <button class="btn-sidebar pass-neon tech-font" @click="handleEnd('PASS')">PASS</button>
-        <button class="btn-sidebar fail-neon tech-font" @click="handleEnd('FAIL')">FAIL</button>
-      </aside>
     </div>
   </div>
 </template>
@@ -97,7 +101,6 @@ let currentSource = null;
 let analyserNode = null;
 let pannerNode = null;
 
-// Helper para cores do tema
 const getThemeColor = (varName) => getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#35a3ff';
 
 function drawBargraph(dataArray) {
@@ -135,7 +138,6 @@ function stopAllAudio() {
     try { currentSource.stop(); } catch (e) {}
     currentSource = null;
   }
-  // Remove classes de animação dos botões
   document.querySelectorAll('.btn-stereo').forEach(b => b.classList.remove('playing'));
 }
 
@@ -233,14 +235,48 @@ watch(selectedTrack, () => stopAllAudio());
 .test-container { display: flex; flex-direction: column; gap: 15px; color: var(--text-main); padding: 10px; height: 100%; }
 .tech-font { font-family: var(--font-tech); letter-spacing: 1px; font-weight: bold; }
 
+/* Header na mesma linha */
 .test-header {
   display: flex; justify-content: space-between; align-items: center;
   border-bottom: 1px solid var(--border); padding-bottom: 12px;
 }
-.title-group { display: flex; align-items: center; gap: 20px; }
-.title-group h4 { margin: 0; color: var(--accent); text-transform: uppercase; }
+.header-left { display: flex; align-items: center; gap: 20px; }
+.header-left h4 { margin: 0; color: var(--accent); text-transform: uppercase; }
 
-.main-layout { display: grid; grid-template-columns: 1fr 100px; gap: 20px; flex-grow: 1; }
+/* Botões com estilo de vidro/transparência */
+.header-actions { display: flex; gap: 12px; }
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+}
+
+.back-neon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.pass-neon:hover {
+  border-color: var(--text-success, #00ff41);
+  color: var(--text-success, #00ff41);
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+}
+
+.fail-neon:hover {
+  border-color: #ff4d4d;
+  color: #ff4d4d;
+  background: rgba(255, 77, 77, 0.1);
+  box-shadow: 0 0 15px rgba(255, 77, 77, 0.3);
+}
+
+.main-layout { display: flex; flex-direction: column; flex-grow: 1; }
 
 .glass-panel {
   background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px);
@@ -258,9 +294,14 @@ watch(selectedTrack, () => stopAllAudio());
 .neon-canvas { width: 100%; height: 100%; }
 
 /* BANNER & INFO */
-.device-banner { width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.2); }
+.device-banner { 
+  width: 100%; padding: 12px; display: flex; justify-content: space-between; 
+  align-items: center; background: rgba(0,0,0,0.2); 
+}
+.banner-info { display: flex; flex-direction: column; gap: 4px; }
 .mini-label { font-size: 0.55rem; color: var(--text-dim); }
 .text-accent { color: var(--accent); font-size: 0.8rem; }
+.device-mini-info { font-size: 0.7rem; color: var(--text-dim); }
 
 /* STEREO BUTTONS */
 .stereo-controls { display: flex; gap: 20px; width: 100%; }
@@ -275,24 +316,37 @@ watch(selectedTrack, () => stopAllAudio());
 /* MANUAL SECTION */
 .manual-section { width: 100%; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
 .manual-row { display: flex; gap: 10px; }
+
+/* Select ajustado com o menu suspenso escuro */
 .glass-select {
-  flex: 1; background: transparent; border: 1px solid var(--border); color: var(--text-main);
-  padding: 8px; border-radius: 4px; font-size: 0.75rem; outline: none;
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4); /* Fundo do select fechado */
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  outline: none;
+  cursor: pointer;
 }
+
+/* Corrige o fundo branco das opções ao abrir o select */
+.glass-select option {
+  background-color: #0b1114; /* Fundo escuro para a lista suspensa */
+  color: var(--text-main, #ffffff);
+  padding: 8px;
+}
+
 .btn-manual {
-  padding: 0 20px; background: var(--accent); color: #000; border: none; border-radius: 4px; cursor: pointer;
+  padding: 0 20px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
 }
 .playing-active { background: #ff4d4d; color: white; }
 
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
-
-/* SIDEBAR PADRONIZADA */
-.decision-sidebar { display: flex; flex-direction: column; gap: 15px; }
-.btn-sidebar {
-  width: 100px; height: 100px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05); color: var(--text-main); cursor: pointer; transition: 0.3s;
-}
-.pass-neon:hover { border-color: var(--text-success); color: var(--text-success); box-shadow: 0 0 20px var(--status-pass-glow); }
-.fail-neon:hover { border-color: #ff4d4d; color: #ff4d4d; box-shadow: 0 0 20px var(--status-fail-glow); }
-.back-neon { padding: 6px 18px; border-radius: 4px; font-size: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); }
 </style>
