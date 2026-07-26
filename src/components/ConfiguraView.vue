@@ -77,7 +77,8 @@ import { globalState } from '@/store.js';
 import Icons from './common/Icons.vue'; //  Importa o componente de ícones para usar nos botões de configuração
 
 // --- LÓGICA DE TEMAS ---
-const currentTheme = ref(localStorage.getItem('theme') || 'dark-orange-mode');
+// Prioridade: tema salvo no banco pro usuário logado > último tema usado neste navegador > padrão.
+const currentTheme = ref(globalState.user?.tema || localStorage.getItem('theme') || 'dark-orange-mode');
 
 const themes = [
   { id: 'default', name: 'Original', color1: '#1a1a1a', color2: '#ffffff' },
@@ -88,13 +89,20 @@ const themes = [
   { id: 'midnight-purple', name: 'Midnight', color1: '#0f0c29', color2: '#9d50bb' },
 ];
 
-const setTheme = (themeId) => {
+const setTheme = (themeId, persist = true) => {
   currentTheme.value = themeId;
   document.documentElement.removeAttribute('data-theme');
   if (themeId !== 'default') {
     document.documentElement.setAttribute('data-theme', themeId);
   }
   localStorage.setItem('theme', themeId);
+
+  // Salva no banco pra persistir entre sessões/dispositivos do mesmo usuário.
+  // "persist = false" é usado só na aplicação inicial (onMounted), pra não
+  // gerar uma escrita no banco toda vez que o app abre.
+  if (persist) {
+    globalState.updateTheme(themeId);
+  }
 };
 
 // --- LÓGICA DE PROGRESSBAR ---
@@ -119,7 +127,7 @@ const setProgressStyle = (styleId) => {
 };
 
 onMounted(() => {
-  setTheme(currentTheme.value);
+  setTheme(currentTheme.value, false);
   setProgressStyle(currentProgressStyle.value);
 });
 </script>
