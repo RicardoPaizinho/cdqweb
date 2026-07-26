@@ -100,6 +100,7 @@ const toggleFlip = (cardId) => {
 // --- FUNÇÕES DE MAPEAMENTO ---
 function updatePCInfo(data) {
   if (!data) return;
+  globalState.pcInfo = data; // guarda o payload bruto pro relatório final (Relatorios.vue)
   serialNumber.value = String(data.serialNumber || '');
   modelName.value = String(data.model || '');
   processador_Name.value = String(data.processador_Name || '');
