@@ -25,6 +25,11 @@ export const globalState = reactive({
   // rebuscar tudo de novo.
   pcInfo: null,
 
+  // Preenchido pelo AutoTest.vue assim que o teste automático roda — modelo,
+  // saúde (%) e temperatura do disco lidos via LibreHardwareMonitor. Usado
+  // pra montar o campo "testeAuto" do relatório final (saveFinalReport).
+  autoTestSmartInfo: null,
+
   // --- NAVEGAÇÃO ENTRE JANELAS PRINCIPAIS (Diagnóstico / Dashboard) ---
   activeWindow: 'diagnostico', // 'diagnostico' | 'dashboard'
 
@@ -243,6 +248,18 @@ export const globalState = reactive({
       Object.entries(this.TEST_FIELD_MAP).forEach(([key, campo]) => {
         testesPayload[campo] = this.testResults[key]?.result || '';
       });
+
+      // "testeAuto" leva o resultado PASS/FAIL + o resumo de saúde do disco
+      // (modelo, saúde % e temperatura), lido pelo AutoTest.vue via LibreHardwareMonitor.
+      const auto = this.autoTestSmartInfo;
+      const resultadoAuto = this.testResults.auto?.result || '';
+      if (auto && resultadoAuto) {
+        const health = auto.health != null ? `${auto.health}%` : '—';
+        const temp = auto.temp != null ? `${auto.temp}°C` : '—';
+        testesPayload.testeAuto = `${resultadoAuto} | Disco: ${auto.modelo || '—'} | Saúde: ${health} | Temp: ${temp}`;
+      } else {
+        testesPayload.testeAuto = resultadoAuto;
+      }
 
       const payload = {
         local,

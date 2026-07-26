@@ -90,6 +90,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { globalState } from '@/store.js';
 
 // --- CONFIGURAÇÃO DA API LOCAL (agente C#) ---
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -109,7 +110,7 @@ const isAllSystemOk = computed(() => {
   return Object.values(results.value).every((r) => r.status === 'check');
 });
 
-defineEmits(['test-completed', 'test-cancelled']);
+const emit = defineEmits(['test-cancelled']);
 
 const applyData = (data) => {
   if (!data || data.error) return;
@@ -122,6 +123,22 @@ const applyData = (data) => {
   };
   lastUpdate.value = new Date().toLocaleTimeString();
   bridgeReady.value = true;
+
+  // Guarda modelo/saúde/temperatura do disco pro relatório final salvar no
+  // campo "testeAuto" do banco (Relatorios.vue lê isso via globalState).
+  globalState.autoTestSmartInfo = {
+    modelo: results.value.smart.details?.modelo || '',
+    health: results.value.smart.details?.health ?? null,
+    temp: results.value.smart.details?.temp ?? null
+  };
+
+  // O teste automático não tem botão manual de PASS/FAIL — assim que os
+  // resultados chegam (ou são reexecutados), já reporta pro relatório final:
+  // PASS se todos os itens estiverem OK, FAIL se qualquer um falhar.
+  // Chamamos saveResult() direto (em vez de emitir "test-completed") pra não
+  // fechar a tela — o técnico continua podendo ver/corrigir os itens com os
+  // botões de ação antes de sair.
+  globalState.saveResult('auto', isAllSystemOk.value ? 'PASS' : 'FAIL');
 };
 
 const fetchResults = async () => {

@@ -1,35 +1,48 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+
+// --- CONFIGURAÇÃO DA API LOCAL (agente C#) ---
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const logs = ref([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
+const connectionError = ref('');
 
-// 1. ESCUTAR MENSAGENS DO C#
-const handleNativeMessage = (event) => {
-  const data = event.data;
-  if (data.type === 'eventLogs') {
-    logs.value = data.data;
+async function fetchLogs() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/eventlog`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    logs.value = await response.json();
+    connectionError.value = '';
+  } catch (err) {
+    connectionError.value = 'Não foi possível conectar ao agente local (porta 5000). Verifique se o HardwareTestApp está em execução.';
+    console.error('Erro ao buscar Event Log:', err);
+  } finally {
     isLoading.value = false;
   }
-};
+}
 
-// 2. SOLICITAR DADOS AO MONTAR
-onMounted(async () => {
-  if (window.chrome?.webview?.hostObjects?.nativeBridge) {
-    window.chrome.webview.addEventListener('message', handleNativeMessage);
-    
-    // Solicita os logs (agora filtrados por Crítico/Erro no C#)
-    const bridge = window.chrome.webview.hostObjects.nativeBridge;
-    await bridge.RequestLogs();
+async function refresh() {
+  isLoading.value = true;
+  try {
+    const response = await fetch(`${API_BASE_URL}/eventlog/refresh`, { method: 'POST' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    logs.value = await response.json();
+    connectionError.value = '';
+  } catch (err) {
+    connectionError.value = 'Não foi possível reexecutar a busca no agente local.';
+    console.error('Erro ao atualizar Event Log:', err);
+  } finally {
+    isLoading.value = false;
   }
+}
+
+onMounted(() => {
+  fetchLogs();
 });
 
-onUnmounted(() => {
-  window.chrome.webview.removeEventListener('message', handleNativeMessage);
-});
-
-// 3. LÓGICA DE ESTILO POR ORIGEM E NÍVEL
+// LÓGICA DE ESTILO POR ORIGEM E NÍVEL
 const getRowClass = (item) => {
   const origin = item.origin?.toLowerCase() || '';
   if (origin.includes('bugcheck')) return 'row-bsod';
@@ -41,19 +54,14 @@ const getBadgeClass = (level) => {
   return level === 'Critical' ? 'badge-critical' : 'badge-error';
 };
 
-// 4. FILTRO DE BUSCA LOCAL (Opcional, para facilitar a vida do técnico)
+// FILTRO DE BUSCA LOCAL
 const filteredLogs = computed(() => {
   if (!searchQuery.value) return logs.value;
-  return logs.value.filter(log => 
-    log.msg.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    log.origin.toLowerCase().includes(searchQuery.value.toLowerCase())
+  return logs.value.filter(log =>
+    log.msg?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    log.origin?.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
-
-const refresh = () => {
-  isLoading.value = true;
-  window.chrome.webview.hostObjects.nativeBridge.RequestLogs();
-};
 </script>
 
 <template>
@@ -63,12 +71,12 @@ const refresh = () => {
         <h2>HISTÓRICO DE FALHAS DO SISTEMA</h2>
         <p>Exibindo apenas Erros Críticos e Falhas de Hardware (Últimos 30 eventos)</p>
       </div>
-      
+
       <div class="actions">
-        <input 
-          v-model="searchQuery" 
-          type="text" 
-          placeholder="Filtrar origem ou mensagem..." 
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Filtrar origem ou mensagem..."
           class="search-input"
         />
         <button @click="refresh" class="btn-refresh" :disabled="isLoading">
@@ -76,6 +84,8 @@ const refresh = () => {
         </button>
       </div>
     </div>
+
+    <p v-if="connectionError" class="connection-error">{{ connectionError }}</p>
 
     <div class="table-wrapper">
       <table v-if="!isLoading && filteredLogs.length > 0">
@@ -107,8 +117,8 @@ const refresh = () => {
         <div class="spinner"></div>
         <p>Acessando registros do Windows...</p>
       </div>
-      
-      <div v-else-if="filteredLogs.length === 0" class="state-info">
+
+      <div v-else-if="!connectionError && filteredLogs.length === 0" class="state-info">
         <p>✅ Nenhum erro crítico ou tela azul detectada recentemente.</p>
       </div>
     </div>
@@ -131,7 +141,7 @@ const refresh = () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   border-bottom: 1px solid #1f2833;
   padding-bottom: 15px;
 }
@@ -159,6 +169,17 @@ const refresh = () => {
   transition: 0.3s;
 }
 .btn-refresh:hover { background: #66fcf1; }
+.btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.connection-error {
+  background: rgba(255, 71, 71, 0.1);
+  border: 1px solid #ff4747;
+  color: #ff4747;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-bottom: 15px;
+}
 
 /* Tabela */
 .table-wrapper {
@@ -169,13 +190,13 @@ const refresh = () => {
   border: 1px solid #1f2833;
 }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-th { 
-  background: #1f2833; 
-  text-align: left; 
-  padding: 12px; 
-  position: sticky; 
-  top: 0; 
-  color: #66fcf1; 
+th {
+  background: #1f2833;
+  text-align: left;
+  padding: 12px;
+  position: sticky;
+  top: 0;
+  color: #66fcf1;
   font-size: 0.75rem;
 }
 td { padding: 12px; border-bottom: 1px solid #0b0c10; vertical-align: middle; }
@@ -194,11 +215,11 @@ td { padding: 12px; border-bottom: 1px solid #0b0c10; vertical-align: middle; }
 
 .col-origin { font-family: 'Consolas', monospace; }
 .col-date { color: #888; }
-.col-msg { 
-  max-width: 300px; 
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
+.col-msg {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: #aaa;
 }
 

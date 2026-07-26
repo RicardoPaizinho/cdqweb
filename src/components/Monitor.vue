@@ -36,27 +36,16 @@
       <div class="status-card neon-card-ssd">
         <div class="card-accent ssd-color"></div>
         <div class="info">
-          <label>{{ globalState.t('hardware.armazenamento') }}</label>
-          <div class="value">{{ storageTemp }}°C</div>
-          <span class="health-label neon-text-ssd">VIDA ÚTIL: {{ storageLife }}%</span>
-        </div>
-      </div>
-
-      <div class="status-card battery-card neon-card-bat">
-        <div class="battery-visual">
-          <div class="battery-body">
-            <div class="battery-liquid" :style="{ height: batteryLevel + '%', background: getBatteryColor() }">
-              <div class="liquid-wave-wrapper">
-                <div class="liquid-wave wave-one"></div>
-              </div>
+          <div class="card-header-row">
+            <label>{{ globalState.t('hardware.armazenamento') }}</label>
+            <div class="stat-min-max">
+              <span>MIN: {{ storageMin }}°</span>
+              <span>MAX: {{ storageMax }}°</span>
             </div>
           </div>
-          <div class="battery-tip"></div>
-        </div>
-        <div class="info">
-          <label>{{ globalState.t('hardware.battery') }}</label>
-          <div class="value">{{ batteryLevel }}%</div>
-          <span class="health-label neon-text-bat">SAÚDE: {{ batteryHealth }}%</span>
+          <div class="value-row">
+            <span class="value">{{ storageTemp }}°C</span>
+          </div>
         </div>
       </div>
     </div>
@@ -79,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, shallowReactive } from 'vue';
+import { ref, onMounted, onUnmounted, shallowReactive } from 'vue';
 import { globalState } from '@/store.js';
 import { Line } from 'vue-chartjs';
 import 'chartjs-adapter-date-fns';
@@ -89,16 +78,18 @@ import {
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, Filler, TimeScale);
 
-// Estados
+// --- CONFIGURAÇÃO DA API LOCAL (agente C#) ---
+const API_BASE_URL = 'http://localhost:5000/api';
+const POLL_INTERVAL_MS = 2000;
+
+// Estados (saúde de bateria e vida útil de disco foram removidas daqui de
+// propósito — já aparecem no teste de bateria e no teste automático de disco,
+// não precisa duplicar essa informação na aba Monitor).
 const cpuTemp = ref(0), cpuMin = ref(100), cpuMax = ref(0);
 const gpuTemp = ref(0), gpuMin = ref(100), gpuMax = ref(0);
-const storageTemp = ref(0), storageLife = ref('---');
-const batteryLevel = ref(0), batteryHealth = ref('---');
+const storageTemp = ref(0), storageMin = ref(100), storageMax = ref(0);
 
-const getBatteryColor = () => {
-  if (batteryLevel.value > 20) return 'linear-gradient(to top, #00ff88, #00d2ff)';
-  return 'linear-gradient(to top, #ff4b2b, #ff416c)';
-};
+let pollTimer = null;
 
 // Configuração do Gráfico Neon
 const chartData = shallowReactive({
@@ -168,7 +159,7 @@ const chartOptions = {
     }
   },
   scales: {
-    y: { 
+    y: {
       min: 20, max: 100, // Focado em temperatura de trabalho
       grid: { color: 'rgba(255, 255, 255, 0.03)' },
       ticks: { color: '#444', font: { family: 'Orbitron', size: 9 } }
@@ -183,30 +174,28 @@ const chartOptions = {
   plugins: { legend: { display: false } }
 };
 
-const handleMessage = (event) => {
-  const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-  
-  // 1. DADOS ESTÁTICOS (Enviados uma única vez)
-  if (data.type === "pcInfo") {
-    storageLife.value = data.storageLife;
-    batteryHealth.value = data.batteryHealth;
+function trackMinMax(minRef, maxRef, value) {
+  if (value > 0) {
+    minRef.value = Math.min(minRef.value === 0 ? value : minRef.value, value);
+    maxRef.value = Math.max(maxRef.value, value);
   }
+}
 
-  // 2. DADOS DINÂMICOS
-  if (data.type === "performanceData") {
-    const r = data.realtime;
+async function fetchPerformance() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/performance`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const r = data.realtime || {};
     const now = new Date();
 
-    cpuTemp.value = Math.round(r.cpuTemp);
-    gpuTemp.value = Math.round(r.gpuTemp);
-    storageTemp.value = Math.round(r.storageTemp);
-    batteryLevel.value = Math.round(r.batteryLevel);
+    cpuTemp.value = Math.round(r.cpuTemp || 0);
+    gpuTemp.value = Math.round(r.gpuTemp || 0);
+    storageTemp.value = Math.round(r.storageTemp || 0);
 
-    // Min/Max
-    if (cpuTemp.value > 0) {
-      cpuMin.value = Math.min(cpuMin.value === 0 ? 100 : cpuMin.value, cpuTemp.value);
-      cpuMax.value = Math.max(cpuMax.value, cpuTemp.value);
-    }
+    trackMinMax(cpuMin, cpuMax, cpuTemp.value);
+    trackMinMax(gpuMin, gpuMax, gpuTemp.value);
+    trackMinMax(storageMin, storageMax, storageTemp.value);
 
     // Atualiza Gráfico
     const updates = [cpuTemp.value, gpuTemp.value, storageTemp.value];
@@ -214,15 +203,20 @@ const handleMessage = (event) => {
       dataset.data.push({ x: now, y: updates[i] });
       if (dataset.data.length > 40) dataset.data.shift();
     });
-    
+
     chartData.datasets = [...chartData.datasets];
+  } catch (err) {
+    console.error('Erro ao buscar dados de performance:', err);
   }
-};
+}
 
 onMounted(() => {
-  if (window.chrome?.webview) {
-    window.chrome.webview.addEventListener('message', handleMessage);
-  }
+  fetchPerformance();
+  pollTimer = setInterval(fetchPerformance, POLL_INTERVAL_MS);
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
 });
 </script>
 
@@ -238,7 +232,7 @@ onMounted(() => {
 
 .top-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 15px;
 }
 
@@ -254,7 +248,6 @@ onMounted(() => {
 .neon-card-cpu:hover { border-color: #ff4b2b; box-shadow: 0 0 20px rgba(255, 75, 43, 0.2); }
 .neon-card-gpu:hover { border-color: #00d2ff; box-shadow: 0 0 20px rgba(0, 210, 255, 0.2); }
 .neon-card-ssd:hover { border-color: #ffca28; box-shadow: 0 0 20px rgba(255, 202, 40, 0.2); }
-.neon-card-bat:hover { border-color: #00ff88; box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
 
 .info label {
   font-size: 0.6rem;
@@ -270,18 +263,6 @@ onMounted(() => {
   font-family: 'Orbitron', sans-serif;
   text-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
-
-.health-label {
-  font-size: 0.7rem;
-  font-weight: bold;
-  margin-top: 8px;
-  padding: 2px 8px;
-  background: rgba(255,255,255,0.03);
-  border-radius: 4px;
-}
-
-.neon-text-ssd { color: #ffca28; text-shadow: 0 0 5px rgba(255, 202, 40, 0.5); }
-.neon-text-bat { color: #00ff88; text-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
 
 /* Seção do Gráfico */
 

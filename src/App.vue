@@ -48,7 +48,7 @@ onMounted(() => {
     <!-- TELA DE LOGIN -->
     <div v-if="!isAuthenticated" class="login-screen">
       <form class="login-card" @submit.prevent="handleLogin">
-        <h1 class="login-title tech-font">HARDWARE DIAG</h1>
+        <h1 class="login-title tech-font">CDQ</h1>
         <p class="login-subtitle">Acesse com seu usuário para continuar</p>
 
         <label class="login-label">Usuário</label>
