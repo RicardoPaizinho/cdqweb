@@ -22,9 +22,9 @@ const closeDiag = () => {
 
 // Mapeamento dos Testes de Estresse
 const diagButtons = [
+  { key: 'gpu', title: 'GPU Stress', desc: 'Benchmark 3D e Estabilidade Térmica' },  
   { key: 'cpu', title: 'CPU Stress', desc: 'Teste de instabilidade de núcleos-' },
   { key: 'memoria', title: 'RAM Stress', desc: 'Verificação de endereçamento e escrita--' },
-  { key: 'gpu', title: 'GPU Stress', desc: 'Benchmark 3D e Estabilidade Térmica' },
   { key: 'ssd', title: 'Disk I/O', desc: 'Velocidade de leitura e escrita sequencial' },
   { key: 'smart', title: 'SMART Test', desc: 'Análise de saúde do disco rígido' },
   { key: 'events', title: 'Event Log', desc: 'Analisador de erros e BSOD (Event Viewer)' },
@@ -76,7 +76,7 @@ const getResultClass = (key) => {
           </div>
 
           <div class="card-footer">
-             <span class="status-text">{{ globalState.testResults[item.key]?.result || 'READY' }}</span>
+             <span class="status-text">{{ globalState.testResults[item.key]?.result || 'Work in progress' }}</span>
           </div>
         </button>
       </div>
@@ -137,10 +137,14 @@ const getResultClass = (key) => {
 .card-footer {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(231, 221, 221, 0.918);
   font-size: 0.75rem;
   font-weight: bold;
   letter-spacing: 1px;
+}
+
+.status-text {
+  color: var(--text-dim);
 }
 
 .btn-back {

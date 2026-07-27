@@ -5,4 +5,15 @@ import App from './App.vue'
 import './assets/styles/variables.css';
 import './assets/styles/theme.css'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+
+// Desabilita avisos de dev no console
+app.config.warnHandler = () => null
+
+if (process.env.NODE_ENV === 'production') {
+  app.config.performance = false
+}
+
+app.mount('#app')
+
+//createApp(App).mount('#app')

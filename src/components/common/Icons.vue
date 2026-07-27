@@ -94,18 +94,13 @@
       <path d="M12 18v4"></path>
     </svg>
 
-<svg v-else-if="name === 'usb'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2v16"></path>
-      
-      <path d="M9.5 4.5L12 2l2.5 2.5"></path>
-      
-      <circle cx="11" cy="20" r="1.4" fill="currentColor"></circle>
-      
-      <path d="M12 15c-3.5 0-6-1.5-6-4.5V7"></path>
-      <circle cx="6" cy="5.5" r="1" fill="currentColor"></circle>
-      
-      <path d="M12 12c3.5 0 6-1.5 6-4.5V9"></path>
-      <path d="M16.5 5.5h3v3h-3z" fill="currentColor"></path>
+<svg v-else-if="name === 'usb'" viewBox="0 0 24 24" :width="size" :height="size" fill="none">
+      <circle cx="12" cy="20" r="2" stroke="currentColor" stroke-width="1.5"></circle>
+      <circle cx="6" cy="6" r="1" stroke="currentColor" stroke-width="1.5"></circle>
+      <path d="M11.25 18C11.25 18.4142 11.5858 18.75 12 18.75C12.4142 18.75 12.75 18.4142 12.75 18H11.25ZM12 2L12.624 1.58397C12.4849 1.37533 12.2508 1.25 12 1.25C11.7492 1.25 11.5151 1.37533 11.376 1.58397L12 2ZM13.376 5.41603C13.6057 5.76067 14.0714 5.8538 14.416 5.62404C14.7607 5.39427 14.8538 4.92862 14.624 4.58397L13.376 5.41603ZM9.37596 4.58397C9.1462 4.92862 9.23933 5.39427 9.58397 5.62404C9.92862 5.8538 10.3943 5.76067 10.624 5.41603L9.37596 4.58397ZM11.25 6.5C11.25 6.91421 11.5858 7.25 12 7.25C12.4142 7.25 12.75 6.91421 12.75 6.5H11.25ZM12.75 9.75C12.75 9.33579 12.4142 9 12 9C11.5858 9 11.25 9.33579 11.25 9.75H12.75ZM11.376 2.41603L13.376 5.41603L14.624 4.58397L12.624 1.58397L11.376 2.41603ZM11.376 1.58397L9.37596 4.58397L10.624 5.41603L12.624 2.41603L11.376 1.58397ZM12.75 18V15H11.25V18H12.75ZM12.75 6.5V2H11.25V6.5H12.75ZM12.75 15V9.75H11.25V15H12.75Z" fill="currentColor"></path>
+      <path d="M6 7V9.55848C6 10.4193 6.55086 11.1836 7.36754 11.4558L10.6325 12.5442C11.4491 12.8164 12 13.5807 12 14.4415V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+      <path d="M18 10V12.5585C18 13.4193 17.4491 14.1836 16.6325 14.4558L13.3675 15.5442C12.5509 15.8164 12 16.5807 12 17.4415V18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+      <path d="M17 9C17 8.5286 17 8.29289 17.1464 8.14645C17.2929 8 17.5286 8 18 8C18.4714 8 18.7071 8 18.8536 8.14645C19 8.29289 19 8.5286 19 9C19 9.4714 19 9.70711 18.8536 9.85355C18.7071 10 18.4714 10 18 10C17.5286 10 17.2929 10 17.1464 9.85355C17 9.70711 17 9.4714 17 9Z" stroke="currentColor" stroke-width="1.5"></path>
     </svg>
 
     <svg v-else-if="name === 'network'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -125,17 +120,12 @@
       <line x1="22" x2="22" y1="11" y2="13"></line>
     </svg>
 
-    <svg v-else-if="name === 'touchscreen'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="3" width="16" height="12" rx="1.5"></rect>
-      
-      <path d="M5 6h6M5 9h8M5 12h4"></path>
-      
-      <path d="M10 15v3a2 2 0 0 1-2 2H6"></path>
-      
-      <path d="M22 21v-8a1.5 1.5 0 0 0-1.5-1.5h-1a1.5 1.5 0 0 0-1.5 1.5V11a1.5 1.5 0 0 0-1.5-1.5h-1A1.5 1.5 0 0 0-14 11v1a1.5 1.5 0 0 0-1.5-1.5h-1A1.5 1.5 0 0 0-18 12v6a3 3 0 0 0 3 3h3"></path>
-      
-      <circle cx="5" cy="1" r="0.25" fill="currentColor"></circle>
-      <circle cx="8" cy="1" r="0.25" fill="currentColor"></circle>
+<svg v-else-if="name === 'touchscreen'" viewBox="0 0 496 496" :width="size" :height="size" fill="currentColor">
+      <path d="M496,40c0-22.056-17.944-40-40-40H40C17.944,0,0,17.944,0,40v240c0,22.056,17.944,40,40,40h206.84 c-4.384,7.304-6.84,15.784-6.84,24.72v68.688c0,24.144,15.392,45.496,38.288,53.12l9.712,3.24V496h16v-37.768l-20.648-6.88 C266.992,445.896,256,430.648,256,413.408V344.72c0-12.192,6.776-23.168,17.688-28.616l14.312-7.16V360h16V136 c0-8.824,7.176-16,16-16c8.824,0,16,7.176,16,16v128v24h16v-24c0-8.824,7.176-16,16-16c8.824,0,16,7.176,16,16v16v8v16h16v-16v-8 c0-8.824,7.176-16,16-16c8.824,0,16,7.176,16,16v16v8v16h16v-16v-8c0-8.824,7.176-16,16-16c8.824,0,16,7.176,16,16v138.336 c0,15.24-8.472,28.952-22.112,35.776L448,475.056V496h16v-11.056l1.048-0.52C484.144,474.864,496,455.68,496,434.336V296 c0-2.688-0.432-5.256-1.064-7.752c0.648-2.896,1.064-5.624,1.064-8.248V40z M48,304h-8c-13.232,0-24-10.768-24-24V40 c0-13.232,10.768-24,24-24h8V304z M288,192H144v-32h144V192z M288,136v8H128v64h160v64H96V112h203.056 C292.336,117.872,288,126.392,288,136z M384,236.448c-4.728-2.752-10.144-4.448-16-4.448c-5.856,0-11.272,1.696-16,4.448V136 c0-9.608-4.336-18.128-11.056-24H384V236.448z M384,96H96V48h288V96z M416,248c-5.856,0-11.272,1.696-16,4.448V32H80v256h208 v3.056l-21.472,10.736c-1.312,0.656-2.52,1.448-3.752,2.208H64V16h352V248z M480,268.448c-4.728-2.752-10.144-4.448-16-4.448 c-6.632,0-12.8,2.032-17.912,5.496c-2.536-7.24-7.552-13.24-14.088-17.048V16h24c13.232,0,24,10.768,24,24V268.448z"></path>
+      <rect x="448" y="120" width="16" height="80"></rect>
+      <rect x="112" y="64" width="16" height="16"></rect>
+      <rect x="144" y="64" width="16" height="16"></rect>
+      <rect x="176" y="64" width="16" height="16"></rect>
     </svg>
 
 <svg v-else-if="name === 'joystick'" viewBox="0 0 24 24" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -150,7 +140,13 @@
       <circle cx="16.5" cy="13.5" r="0.5" fill="currentColor"></circle>
     </svg>
 
-
+<svg v-else-if="name === 'fingerprint'" viewBox="0 0 48 48" :width="size" :height="size" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M42.4309 12.0391C37.7023 7.38257 31.1542 4.5 23.9187 4.5C16.7257 4.5 10.2121 7.34876 5.48999 11.9571"></path>
+      <path d="M6.66675 29.4743V29.4167C6.66675 19.8437 14.4271 12.0833 24.0001 12.0833"></path>
+      <path d="M31.1694 13.6309C37.1649 16.3582 41.3333 22.4006 41.3333 29.4167V29.4296"></path>
+      <path d="M14.25 37V29.4167C14.25 24.0319 18.6152 19.6667 24 19.6667C29.3848 19.6667 33.75 24.0319 33.75 29.4167V37"></path>
+      <path d="M17.5261 43.5C19.489 43.0154 20.75 40.9456 20.75 39.196C20.75 37.3354 20.75 34.4367 20.75 30.5C20.75 28.7051 22.2051 27.25 24 27.25C25.795 27.25 27.25 28.7051 27.25 30.5V39.196"></path>
+    </svg>
 
   </span>
 </template>

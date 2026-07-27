@@ -1,3 +1,5 @@
+import FingerprintTest from "@/components/tests/FingerprintTest.vue";
+
 // src/locales/i18n.js
 export const messages = {
   pt: {
@@ -34,7 +36,8 @@ export const messages = {
       touchscreen: 'Tela Touchscreen',
       gpu: 'Placa de Vídeo',
       sistema: 'Sistema Operacional',
-      auto_test: 'Teste Automático'
+      auto_test: 'Teste Automático',
+      fingerprint: 'Fingerprint Test' // 💡 Adicionado para o teste de impressão digital
     },
     popupSobre: {
       botao: "Fechar",
@@ -76,7 +79,8 @@ export const messages = {
       touchscreen: 'Touchscreen', // 💡 Traduzido de "Tela Touchscreen"
       gpu: 'Graphics Card',
       sistema: 'Operating System',
-      auto_test: 'Automatic Test' // 💡 Traduzido de "Teste Automático"
+      auto_test: 'Automatic Test', // 💡 Traduzido de "Teste Automático"
+      fingerprint: 'Fingerprint Test' // 💡 Adicionado para o teste de impressão digital
     },
     popupSobre: {
       botao: "Close",
@@ -118,7 +122,8 @@ export const messages = {
       touchscreen: 'Pantalla Táctil', // 💡 Traduzido de "Tela Touchscreen"
       gpu: 'Tarjeta de Video', // 💡 Corrigido acento para o padrão latino (Vídeo -> Video)
       sistema: 'Sistema Operativo',
-      auto_test: 'Prueba Automática' // 💡 Traduzido de "Teste Automático"
+      auto_test: 'Prueba Automática', // 💡 Traduzido de "Teste Automático"
+      fingerprint: 'Fingerprint Test' // 💡 Adicionado para o teste de impressão digital
     },
     popupSobre: {
       botao: "Cerrar",

@@ -17,6 +17,7 @@ import UsbTest from '@/components/tests/UsbTest.vue';
 import AutoTest from '@/components/tests/AutoTest.vue';
 import Icons from '@/components/common/Icons.vue';
 import TouchScreen from '@/components/tests/TouchScreen.vue';
+import FingerprintTest from '@/components/tests/FingerprintTest.vue';
 
 const currentTest = ref(null);
 
@@ -53,6 +54,7 @@ const testButtons = [
   { key: 'usb', title: globalState.t('hardware.usb'), icon: 'usb' },
   { key: 'touchscreen', title: globalState.t('hardware.touchscreen'), icon: 'touchscreen' },
   { key: 'auto', title: globalState.t('hardware.auto_test'), icon: 'test-list' },
+  { key: 'fingerprint', title: globalState.t('hardware.fingerprint'), icon: 'fingerprint' },
 ];
 </script>
 
