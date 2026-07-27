@@ -261,17 +261,12 @@ const formatResult = (val) => {
   return val > 0 ? val.toFixed(1) + ' Hz' : 'SEM SINAL';
 };
 
-// Modificado para aplicar o status tanto para mic quanto para speaker no seu CDQInfo/CDQWeb
-const endTest = (res) => { 
-  stopAll(); 
-  
-  if (res === 'PASS') {
-    // Emite aprovação sequencial para ambos os escopos do relatório
-    emit('test-completed', { test: 'speaker', result: 'PASS' });
-    emit('test-completed', { test: 'microphone', result: 'PASS' });
-  } else {
-    emit('test-completed', { test: 'microphone', result: 'FAIL' });
-  }
+// Testa mic e speaker ao mesmo tempo — emitimos um único evento combinado
+// (em vez de dois separados) pro MicTest.vue não correr risco de fechar a
+// tela entre os dois emits e perder o segundo resultado.
+const endTest = (res) => {
+  stopAll();
+  emit('test-completed', { combined: true, result: res === 'PASS' ? 'PASS' : 'FAIL' });
 };
 
 const goBack = () => { stopAll(); emit('test-cancelled'); };

@@ -30,6 +30,10 @@ export const globalState = reactive({
   // pra montar o campo "testeAuto" do relatório final (saveFinalReport).
   autoTestSmartInfo: null,
 
+  // Preenchido pelo BatteryTest.vue ao finalizar o teste — carga (%) e
+  // saúde/vida útil (%) da bateria. Usado pra montar o campo "testeBateria".
+  batteryTestInfo: null,
+
   // --- NAVEGAÇÃO ENTRE JANELAS PRINCIPAIS (Diagnóstico / Dashboard) ---
   activeWindow: 'diagnostico', // 'diagnostico' | 'dashboard'
 
@@ -197,7 +201,15 @@ export const globalState = reactive({
       gpu: Array.isArray(info.placaVideo) ? info.placaVideo.join(' | ') : (info.placaVideo || ''),
       gpu2: '',
       memoriaTotal: info.memoria || '',
-      memoriaDetalhada: '',
+      // Lista detalhada por pente, lida pelo agente C# (ReadSystemInfo.GetMemoryInfo
+      // -> Memorias), um pente por linha: capacidade, fabricante, tipo/clock e serial.
+      memoriaDetalhada: Array.isArray(info.memoriaDetalhada)
+        ? info.memoriaDetalhada
+            .map((m) => `${m.capacity || m.Capacity || '—'} ${m.manufacturer || m.Manufacturer || '—'} ` +
+                        `${m.memoryType || m.MemoryType || ''} ${m.configuredClockSpeed || m.ConfiguredClockSpeed || ''}Mhz ` +
+                        `(SN: ${m.serialNumber || m.SerialNumber || '—'}, PN: ${m.partNumber || m.PartNumber || '—'})`.trim())
+            .join(' | ')
+        : '',
       discosDetalhado: Array.isArray(info.armazenamento) ? info.armazenamento.join(' | ') : (info.armazenamento || '')
     };
   },
@@ -259,6 +271,18 @@ export const globalState = reactive({
         testesPayload.testeAuto = `${resultadoAuto} | Disco: ${auto.modelo || '—'} | Saúde: ${health} | Temp: ${temp}`;
       } else {
         testesPayload.testeAuto = resultadoAuto;
+      }
+
+      // "testeBateria" leva o resultado PASS/FAIL + carga (%) e saúde/vida
+      // útil (%) lidos pelo BatteryTest.vue via WMI (agente C#).
+      const bat = this.batteryTestInfo;
+      const resultadoBateria = this.testResults.battery?.result || '';
+      if (bat && resultadoBateria) {
+        const carga = bat.charge != null ? `${bat.charge}%` : '—';
+        const saude = bat.health != null ? `${bat.health}%` : '—';
+        testesPayload.testeBateria = `${resultadoBateria} | Carga: ${carga} | Saúde: ${saude}`;
+      } else {
+        testesPayload.testeBateria = resultadoBateria;
       }
 
       const payload = {

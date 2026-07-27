@@ -93,6 +93,7 @@ const testButtons = [
       <UsbTest v-else-if="currentTest === 'usb'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
       <TouchScreen v-else-if="currentTest === 'touchscreen'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
       <AutoTest v-else-if="currentTest === 'auto'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
+      <FingerprintTest v-else-if="currentTest === 'fingerprint'" @test-completed="handleTestCompletion" @test-cancelled="handleTestCompletion" />
     </div>
   </div>
 </template>

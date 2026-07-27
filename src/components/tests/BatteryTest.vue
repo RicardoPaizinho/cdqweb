@@ -231,6 +231,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { globalState } from '@/store.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -414,7 +415,15 @@ onBeforeUnmount(() => {
   if (pollTimer) clearInterval(pollTimer);
 });
 
-const endTest = (res) => emit('test-completed', res);
+const endTest = (res) => {
+  // Guarda carga (%) e saúde/vida útil (%) da bateria pro relatório final
+  // salvar no campo "testeBateria" do banco (Relatorios.vue lê isso via globalState).
+  globalState.batteryTestInfo = {
+    charge: currentCapacityPercent.value ?? null,
+    health: batteryHealthPercent.value ?? null
+  };
+  emit('test-completed', res);
+};
 const goBack = () => emit('test-cancelled');
 </script>
 

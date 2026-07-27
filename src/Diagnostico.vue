@@ -195,6 +195,40 @@ async function fetchKeyboardEvents() {
   }
 }
 
+// --- AUTO DIAGNÓSTICO (AutoTest) ---
+// O backend C# já roda esse diagnóstico sozinho assim que o agente sobe
+// (RunInitialDiagnosticsAsync). Antes só era enviado pro relatório quando o
+// técnico abria a aba "Auto" manualmente (que disparava o fetch). Agora
+// buscamos aqui, uma vez, assim que o app inicia — envia PASS/FAIL pro
+// relatório mesmo que a aba nunca seja aberta. Tenta de novo por alguns
+// segundos caso o backend ainda não tenha terminado a primeira rodada.
+async function fetchAutoDiagnosticsOnce(attempt = 0) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auto-diagnostics`);
+    const data = await response.json();
+
+    // Cache ainda vazio ("{}") -> o backend não terminou a primeira rodada ainda.
+    if (!data || !data.drivers) {
+      if (attempt < 10) setTimeout(() => fetchAutoDiagnosticsOnce(attempt + 1), 1000);
+      return;
+    }
+
+    const allOk = ['drivers', 'bitlocker', 'partition', 'activation', 'smart']
+      .every((key) => data[key]?.status === 'check');
+
+    globalState.autoTestSmartInfo = {
+      modelo: data.smart?.details?.modelo || '',
+      health: data.smart?.details?.health ?? null,
+      temp: data.smart?.details?.temp ?? null
+    };
+
+    globalState.saveResult('auto', allOk ? 'PASS' : 'FAIL');
+  } catch (err) {
+    console.error('Erro ao buscar diagnóstico automático inicial:', err);
+    if (attempt < 10) setTimeout(() => fetchAutoDiagnosticsOnce(attempt + 1), 1000);
+  }
+}
+
 // --- ESTILO DOS GAUGES ---
 const currentStyleId = ref(localStorage.getItem('progress-style') || 'progress-01');
 const styleMap = {
@@ -218,6 +252,9 @@ onMounted(() => {
 
   // 3. Cria o looping rápido para ler eventos de tecla física do Windows (a cada 150ms)
   keyboardInterval = setInterval(fetchKeyboardEvents, 150);
+
+  // 4. Dispara o auto-diagnóstico uma vez, sem depender do técnico abrir a aba
+  fetchAutoDiagnosticsOnce();
 });
 
 onUnmounted(() => {

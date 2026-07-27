@@ -63,12 +63,13 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { globalState } from '@/store.js';
 
 import MicTestGrava from './MicTestGrava.vue';
 import MicTestLoop from './MicTestLoop.vue';
 import MicTestNotes from './MicTestNotes.vue';
 
-const emit = defineEmits(['test-completed', 'test-cancelled']);
+const emit = defineEmits(['test-cancelled']);
 const activeTest = ref(null);
 
 const modules = {
@@ -87,23 +88,29 @@ const goBack = () => {
   }
 };
 
+// Os sub-módulos emitem de duas formas:
+//  - string simples 'PASS'/'FAIL' (Rec&Play, Live Loop -> testam só o mic)
+//  - objeto { combined: true, result: 'PASS'/'FAIL' } (Auto Notes testa mic
+//    e speaker ao mesmo tempo -> os dois recebem o mesmo resultado)
+// Chamamos globalState.saveResult() direto (em vez de emitir 'test-completed',
+// que o TestesView.vue só reconhece como string simples) — era exatamente
+// esse o motivo do resultado do microfone não estar sendo salvo antes.
 const handleModuleResult = (result) => {
-  // Caso o resultado seja um objeto (como implementado no emit anterior) ou string simples 'PASS'
-  const isPass = result === 'PASS' || (result && result.result === 'PASS') || result?.status === 'PASS';
+  let isPass = false;
+
+  if (result && result.combined) {
+    globalState.saveResult('microfone', result.result);
+    globalState.saveResult('speaker', result.result);
+    isPass = result.result === 'PASS';
+  } else if (result === 'PASS' || result === 'FAIL') {
+    globalState.saveResult('microfone', result);
+    isPass = result === 'PASS';
+  }
 
   if (isPass) {
-    if (activeTest.value === 'notes') {
-      // Se for o Auto Notes, aprova ambos e retorna ao menu interno de testes de áudio
-      emit('test-completed', { test: 'microphone', result: 'PASS' });
-      emit('test-completed', { test: 'speaker', result: 'PASS' });
-      activeTest.value = null; 
-    } else {
-      // Comportamento padrão para grava e loop: aprova apenas o mic e sai do diagnóstico
-      emit('test-completed', { test: 'microphone', result: 'PASS' });
-    }
+    emit('test-cancelled'); // fecha a tela de diagnóstico de áudio (já salvamos o resultado)
   } else {
-    // Se falhar ou for reprovado manualmente, volta para o menu para tentar outro método
-    activeTest.value = null; 
+    activeTest.value = null; // reprovado (ou resultado inválido): volta pro menu interno
   }
 };
 </script>

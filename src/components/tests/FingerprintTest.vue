@@ -3,16 +3,26 @@ import { ref } from 'vue';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
+// --- CONFIGURAÇÃO DA API LOCAL (agente C#) ---
+const API_BASE_URL = 'http://localhost:5000/api';
+
 const launchStatus = ref('');
 
-function openWindowsFingerprintEnrollment() {
+async function openWindowsFingerprintEnrollment() {
   try {
-    // Dispara o protocolo do Windows para abrir o cadastro de digital no Configurações
-    window.location.href = 'ms-settings:signinoptions-launchfingerprintenrollment';
+    const response = await fetch(`${API_BASE_URL}/auto-diagnostics/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'OpenFingerprintEnrollment' })
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || (data && data.success === false)) {
+      throw new Error(data?.message || 'Falha ao abrir o recurso do Windows.');
+    }
     launchStatus.value = 'Configuração do Windows solicitada. Verifique a janela aberta.';
   } catch (err) {
-    launchStatus.value = 'Não foi possível abrir o recurso do Windows automaticamente.';
-    console.error('Erro ao abrir ms-settings:', err);
+    launchStatus.value = 'Não foi possível conectar ao agente local (porta 5000) para abrir o recurso.';
+    console.error('Erro ao abrir ms-settings via agente local:', err);
   }
 }
 
