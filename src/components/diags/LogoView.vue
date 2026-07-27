@@ -12,7 +12,7 @@
     <div class="logo-3d-container">
       <div ref="canvasContainer" class="canvas-3d"></div>
       
-      <button @click="isUiHidden = !isUiHidden" class="btn-ui-toggle">
+      <button @click="isUiHidden = !isUiHidden" class="btn-ui-toggle shadow-glow">
         {{ isUiHidden ? 'MOSTRAR PAINEL' : 'OCULTAR PAINEL' }}
       </button>
 
@@ -64,7 +64,8 @@ const keyframes = ref([]);
 const envIntensity = ref(1.5);
 const isAnimating = ref(false);
 const laptopOpen = ref(false);
-const isUiHidden = ref(false);
+// 1. Painel inicia oculto por padrão
+const isUiHidden = ref(true);
 
 let scene, camera, renderer, model, controls, rafId, timeline;
 let lcdCover = null;
@@ -78,7 +79,6 @@ const initThree = async () => {
 
   scene = new THREE.Scene();
   
-  // IMPORTANTE: Pegar o tamanho do container pai
   const width = canvasContainer.value.offsetWidth || window.innerWidth - 300;
   const height = canvasContainer.value.offsetHeight || window.innerHeight - 100;
 
@@ -119,9 +119,29 @@ const initThree = async () => {
 
     scene.add(model);
     animate();
+
+    // 2. Carrega automaticamente a animação 'anima.json' após inserir o modelo 3D na cena
+    loadDefaultAnimation();
   });
 
   window.addEventListener('resize', onWindowResize);
+};
+
+// Função para buscar e iniciar a animação padrão do mesmo diretório
+const loadDefaultAnimation = async () => {
+  try {
+    const response = await fetch('/anima.json');
+    if (!response.ok) return;
+    
+    const data = await response.json();
+    if (Array.isArray(data) && data.length >= 2) {
+      keyframes.value = data;
+      nextTick(() => playSequence());
+    }
+  } catch (err) {
+    // Caso anima.json não exista na pasta public ou falhe o parse, segue a execução limpa
+    console.warn("Animação padrão (anima.json) não encontrada ou inválida.");
+  }
 };
 
 const updateLighting = () => {
@@ -136,7 +156,6 @@ const animate = () => {
   if (renderer && scene && camera) renderer.render(scene, camera);
 };
 
-// Funções de controle mantidas
 const saveKeyframe = () => {
   keyframes.value.push({
     pos: camera.position.clone(),
@@ -151,10 +170,21 @@ const playSequence = () => {
   if (timeline) timeline.kill();
   isAnimating.value = true;
   controls.enabled = false;
+  
   timeline = gsap.timeline({ repeat: -1, defaults: { duration: 3, ease: "none" } });
+  
   keyframes.value.forEach((point, index) => {
-    timeline.to(camera.position, { x: point.pos.x, y: point.pos.y, z: point.pos.z }, index === 0 ? 0 : ">");
-    timeline.to(controls.target, { x: point.tar.x, y: point.tar.y, z: point.tar.z }, "<");
+    // Garante que pos e tar sejam tratados como estruturas x,y,z no GSAP (seja classe Vector3 ou JSON legível)
+    const posX = point.pos.x !== undefined ? point.pos.x : point.pos[0];
+    const posY = point.pos.y !== undefined ? point.pos.y : point.pos[1];
+    const posZ = point.pos.z !== undefined ? point.pos.z : point.pos[2];
+
+    const tarX = point.tar.x !== undefined ? point.tar.x : point.tar[0];
+    const tarY = point.tar.y !== undefined ? point.tar.y : point.tar[1];
+    const tarZ = point.tar.z !== undefined ? point.tar.z : point.tar[2];
+
+    timeline.to(camera.position, { x: posX, y: posY, z: posZ }, index === 0 ? 0 : ">");
+    timeline.to(controls.target, { x: tarX, y: tarY, z: tarZ }, "<");
     timeline.to(envIntensity, { value: point.int, onUpdate: updateLighting }, "<");
     if (lcdCover) timeline.to(lcdCover.rotation, { x: point.rot }, "<");
   });
@@ -183,10 +213,10 @@ const onWindowResize = () => {
 };
 
 const exportJSON = () => {
-  const blob = new Blob([JSON.stringify(keyframes.value)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(keyframes.value, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'path.json';
+  a.download = 'anima.json';
   a.click();
 };
 
@@ -195,15 +225,20 @@ const importJSON = (e) => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    keyframes.value = JSON.parse(ev.target.result);
-    if (keyframes.value.length >= 2) nextTick(() => playSequence());
+    try {
+      keyframes.value = JSON.parse(ev.target.result);
+      if (keyframes.value.length >= 2) nextTick(() => playSequence());
+    } catch (err) {
+      console.error("Falha ao ler o arquivo JSON:", err);
+    }
   };
   reader.readAsText(file);
 };
 
-onMounted(() => setTimeout(initThree, 100)); // Pequeno delay para garantir que o DOM estabilizou
+onMounted(() => setTimeout(initThree, 100));
 onUnmounted(() => {
   cancelAnimationFrame(rafId);
+  if (timeline) timeline.kill();
   if (renderer) renderer.dispose();
   window.removeEventListener('resize', onWindowResize);
 });
@@ -214,7 +249,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%; /* Ocupa o espaço do main-content */
+  height: 100%;
   background: #050505;
   position: relative;
 }
@@ -240,7 +275,6 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* Painel de controles fixado à direita do container */
 .camera-controls {
   position: absolute;
   top: 20px;
@@ -262,14 +296,35 @@ button {
   font-family: 'Orbitron', sans-serif;
   font-size: 9px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  border-color: #00ff88;
 }
 
 .btn-back { border-color: #444; color: #888; }
 .btn-back:hover { border-color: #00ff88; color: #00ff88; }
-.btn-play { background: #00ff88 !important; color: #000 !important; }
+.btn-play { background: #00ff88 !important; color: #000 !important; font-weight: bold; }
+.btn-danger:hover { border-color: #ff3366; color: #ff3366; }
 
 .gpu-badge-inline { color: #00ff88; font-size: 10px; font-family: monospace; }
 .control-row { margin: 10px 0; font-size: 9px; color: #00ff88; }
 .control-row input { width: 100%; accent-color: #00ff88; }
-.btn-ui-toggle { position: absolute; bottom: 10px; right: 10px; font-size: 8px; opacity: 0.6; }
+
+.btn-ui-toggle { 
+  position: absolute; 
+  bottom: 20px; 
+  right: 20px; 
+  font-size: 9px; 
+  padding: 10px 14px;
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid #00ff88;
+  color: #00ff88;
+  z-index: 11;
+}
+
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
+}
 </style>
