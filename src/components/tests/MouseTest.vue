@@ -55,28 +55,31 @@
             <h5 class="tech-font panel-label">Testes Dinâmicos</h5>
             
             <div class="tools-row">
-              <div class="scroll-widget card-glass" :class="{ 'neon-blue': checks.scroll }">
-                <div class="scroll-track">
-                  <div class="scroll-handle" :style="{ transform: `translateY(${scrollOffset}px)` }"></div>
-                </div>
-                <span class="tech-font mini-label">SCROLL</span>
-              </div>
-
               <div class="drag-bench card-glass" :class="{ 'neon-purple': checks.drag }">
-                <div v-if="!checks.drag" class="drag-item" draggable="true" @dragstart="onDragStart">
+                <div
+                  v-if="!checks.drag"
+                  class="drag-item"
+                  :class="{ ready: checks.scroll }"
+                  :style="{ transform: `scale(${dragScale})` }"
+                  draggable="true"
+                  @dragstart="onDragStart"
+                >
                   <div class="drag-icon">📦</div>
                 </div>
-                <div 
-                  class="drop-target" 
-                  :class="{ over: isOver, success: checks.drag }" 
-                  @dragover.prevent="isOver = true" 
-                  @dragleave="isOver = false" 
+                <div
+                  class="drop-target"
+                  :class="{ over: isOver, success: checks.drag }"
+                  @dragover.prevent="isOver = true"
+                  @dragleave="isOver = false"
                   @drop="onDrop"
                 >
                   <span v-if="checks.drag" class="success-icon">✅</span>
                   <span v-else class="tech-font">ALVO</span>
                 </div>
               </div>
+              <p class="hint tech-font" v-if="!checks.drag">
+                {{ checks.scroll ? 'ARRASTE O PACOTE ATÉ O ALVO' : 'USE O SCROLL PARA AMPLIAR O PACOTE' }}
+              </p>
             </div>
 
             <div class="status-checklist card-glass neon-orange">
@@ -108,9 +111,13 @@ const checks = reactive({
 
 const dotPos = reactive({ x: 50, y: 50 });
 const buttons = reactive({ left: false, right: false });
-const scrollOffset = ref(0);
 const isOver = ref(false);
 let lastRightClickTime = 0;
+
+const dragScale = ref(1);
+const MIN_SCALE = 1;
+const MAX_SCALE = 2.2;
+const ZOOM_THRESHOLD = 1.6;
 
 const allDone = computed(() => Object.values(checks).every(v => v === true));
 
@@ -120,7 +127,7 @@ const formatLabel = (key) => {
     leftDblClick: 'DUPLO ESQ.',
     rightClick: 'CLIQUE DIR.',
     rightDblClick: 'DUPLO DIR.',
-    scroll: 'SCROLL',
+    scroll: 'SCROLL / ZOOM',
     drag: 'DRAG & DROP'
   };
   return map[key];
@@ -151,12 +158,17 @@ const onContextMenu = (e) => {
 };
 
 const onWheel = (e) => {
-  scrollOffset.value = Math.max(-20, Math.min(20, e.deltaY));
-  checks.scroll = true;
-  setTimeout(() => { scrollOffset.value = 0; }, 200);
+  e.preventDefault();
+  if (checks.drag) return;
+  const delta = e.deltaY < 0 ? 0.08 : -0.08;
+  dragScale.value = Math.min(MAX_SCALE, Math.max(MIN_SCALE, dragScale.value + delta));
+  if (dragScale.value >= ZOOM_THRESHOLD) checks.scroll = true;
 };
 
-const onDragStart = (e) => e.dataTransfer.setData("text", "ok");
+const onDragStart = (e) => {
+  if (!checks.scroll) { e.preventDefault(); return; }
+  e.dataTransfer.setData("text", "ok");
+};
 const onDrop = () => { isOver.value = false; checks.drag = true; };
 
 const endTest = (res) => emit('test-completed', res);
@@ -168,7 +180,7 @@ onMounted(() => {
   window.addEventListener('mouseup', onGlobalMouseUp);
   window.addEventListener('dblclick', onGlobalDblClick);
   window.addEventListener('contextmenu', onContextMenu);
-  window.addEventListener('wheel', onWheel);
+  window.addEventListener('wheel', onWheel, { passive: false });
 });
 
 onUnmounted(() => {
@@ -238,16 +250,14 @@ onUnmounted(() => {
 }
 
 /* FERRAMENTAS DINÂMICAS */
-.tools-row { display: flex; gap: 15px; margin-bottom: 20px; }
-.scroll-widget { width: 70px; height: 140px; display: flex; flex-direction: column; align-items: center; padding: 8px; gap: 8px; }
-.scroll-track { width: 4px; flex-grow: 1; background: rgba(0,0,0,0.5); border-radius: 2px; position: relative; }
-.scroll-handle { width: 12px; height: 25px; background: var(--accent); border-radius: 3px; left: -4px; position: absolute; }
-.mini-label { font-size: 0.55rem; color: var(--text-dim); }
-
-.drag-bench { flex-grow: 1; height: 140px; display: flex; align-items: center; justify-content: space-around; }
+.tools-row { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+.drag-bench { width: 100%; height: 140px; display: flex; align-items: center; justify-content: space-around; }
+.drag-item { transition: transform 0.15s ease-out; }
 .drag-icon { font-size: 1.8rem; cursor: grab; }
+.drag-item.ready .drag-icon { filter: drop-shadow(0 0 10px var(--accent-glow)); }
 .drop-target { width: 90px; height: 70px; border: 2px dashed var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 0.65rem; }
 .drop-target.success { border-style: solid; border-color: var(--text-success); color: var(--text-success); }
+.hint { font-size: 0.6rem; color: var(--text-dim); text-align: center; margin: 0; }
 
 /* CHECKLIST */
 .status-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
