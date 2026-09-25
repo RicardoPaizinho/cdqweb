@@ -45,9 +45,17 @@
               <div class="btn-hw-neon" :class="{ active: buttons.left }">
                 <span class="tech-font">LEFT CLICK</span>
               </div>
+              
+              <div class="btn-hw-neon optional-btn" :class="{ active: buttons.middle, captured: middleCaptured }">
+                <span class="tech-font">MID</span>
+                
+              </div>
+
               <div class="btn-hw-neon" :class="{ active: buttons.right }">
                 <span class="tech-font">RIGHT CLICK</span>
               </div>
+
+
             </div>
           </div>
 
@@ -110,7 +118,8 @@ const checks = reactive({
 });
 
 const dotPos = reactive({ x: 50, y: 50 });
-const buttons = reactive({ left: false, right: false });
+const buttons = reactive({ left: false, right: false, middle: false });
+const middleCaptured = ref(false);
 const isOver = ref(false);
 let lastRightClickTime = 0;
 
@@ -141,11 +150,13 @@ const onGlobalMouseMove = (e) => {
 const onGlobalMouseDown = (e) => {
   if (e.button === 0) { buttons.left = true; checks.leftClick = true; }
   if (e.button === 2) { buttons.right = true; checks.rightClick = true; }
+  if (e.button === 1) { e.preventDefault(); buttons.middle = true; middleCaptured.value = true; }
 };
 
 const onGlobalMouseUp = (e) => {
   if (e.button === 0) buttons.left = false;
   if (e.button === 2) buttons.right = false;
+  if (e.button === 1) buttons.middle = false;
 };
 
 const onGlobalDblClick = (e) => { if (e.button === 0) checks.leftDblClick = true; };
@@ -222,7 +233,7 @@ onUnmounted(() => {
 
 /* TRACKPAD & DOTS */
 .trackpad-surface {
-  height: 240px; background: rgba(0,0,0,0.3); border-radius: 10px;
+  height: 150px; background: rgba(0,0,0,0.3); border-radius: 10px;
   position: relative; overflow: hidden; border: 1px solid var(--border);
 }
 .grid-lines {
@@ -238,16 +249,30 @@ onUnmounted(() => {
 .coordinate-display { position: absolute; bottom: 10px; right: 15px; font-size: 0.7rem; color: var(--text-dim); }
 
 /* BOTÕES HW NEON */
-.physical-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+.physical-buttons { display: grid; grid-template-columns: 1fr 0.5fr 1fr; gap: 12px; margin-top: 15px; align-items: center; }
 .btn-hw-neon {
   height: 55px; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-  border-radius: 8px; display: flex; align-items: center; justify-content: center;
-  color: var(--text-dim); transition: 0.2s;
+  border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; color: var(--text-dim); transition: 0.2s;
 }
+
+.btn-hw-neon span.tech-font { font-size: 0.7rem; }
 .btn-hw-neon.active {
   background: var(--accent-glow); border-color: var(--accent);
   color: var(--text-main); box-shadow: 0 0 15px var(--accent-glow);
 }
+
+.btn-hw-neon2 {
+  height: 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim); transition: 0.2s;
+}
+.btn-hw-neon2 span.tech-font { font-size: 0.5rem; }
+.btn-hw-neon2.active {
+  background: var(--accent-glow); border-color: var(--accent);
+  color: var(--text-main); box-shadow: 0 0 10px var(--accent-glow);
+}
+.optional-btn.captured:not(.active) { border-color: var(--text-success); color: var(--text-success); }
 
 /* FERRAMENTAS DINÂMICAS */
 .tools-row { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
@@ -260,12 +285,12 @@ onUnmounted(() => {
 .hint { font-size: 0.6rem; color: var(--text-dim); text-align: center; margin: 0; }
 
 /* CHECKLIST */
-.status-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
-.check-item { display: flex; align-items: center; gap: 8px; opacity: 0.3; }
+.status-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
+.check-item { display: flex; align-items: center; gap: 10px; opacity: 0.3; }
 .check-item.done { opacity: 1; }
-.led { width: 6px; height: 6px; border-radius: 50%; background: #444; }
+.led { width: 8px; height: 8px; border-radius: 50%; background: #444; flex-shrink: 0; }
 .done .led { background: var(--text-success); box-shadow: 0 0 8px var(--status-pass-glow); }
-.check-item .label { font-size: 0.6rem; color: var(--text-main); }
+.check-item .label { font-size: 0.85rem; color: var(--text-main); }
 
 /* =========================================================
    ESTILOS PADRONIZADOS MODIFICADOS (BOTOES NO HEADER)
