@@ -65,9 +65,33 @@ const RAW_CAUSES = [
   ['0xC0000225', 'POSSÍVEL REMOÇÃO DE DRIVE DE BOOT OU FALHA NO RECONHECIMENTO DO DISCO'],
 ];
 
-export const BSOD_CAUSES = new Map(
-  RAW_CAUSES.map(([hex, causa]) => [parseInt(hex, 16), causa])
-);
+// Causas complementares sugeridas pelo Claude (não vêm da planilha da equipe) para códigos
+// com correlação de hardware bem documentada. Prefixadas com "IA:" na exibição para deixar
+// claro que não passaram pela mesma validação empírica da tabela acima — sirva como ponto de
+// partida, não como diagnóstico definitivo.
+const RAW_CAUSES_AI = [
+  ['0x000001AA', 'MEMÓRIA RAM OU PROCESSADOR — corrupção de pilha do kernel geralmente indica RAM instável ou CPU com erro; placa mãe entra como causa secundária/indireta (barramento ou alimentação).'],
+  ['0x000001AB', 'MEMÓRIA RAM OU PROCESSADOR — mesma família de EXCEPTION_ON_INVALID_STACK; placa mãe é causa secundária/indireta.'],
+  ['0x00000019', 'MEMÓRIA RAM — corrupção de cabeçalho de pool; também pode ser causada por driver defeituoso, não só hardware.'],
+  ['0x0000002E', 'MEMÓRIA RAM OU PLACA MÃE — erro físico no barramento de memória; testar os módulos separadamente.'],
+  ['0x00000109', 'MEMÓRIA RAM — estrutura crítica do kernel corrompida, geralmente por RAM instável (também pode ser driver malicioso).'],
+  ['0x0000013A', 'MEMÓRIA RAM — corrupção de heap do kernel; testar os módulos de memória separadamente.'],
+  ['0x0000012B', 'MEMÓRIA RAM OU PROCESSADOR — o próprio Windows (via WHEA) já identifica isso como falha física de hardware detectada.'],
+  ['0x00000024', 'SSD/HD OU CABO SATA — corrupção do sistema de arquivos NTFS, geralmente causada por disco ou conexão com defeito.'],
+  ['0x00000023', 'SSD/HD OU CABO SATA — mesma origem do NTFS_FILE_SYSTEM, em partições FAT/FAT32.'],
+  ['0x000000F4', 'SSD — processo crítico do sistema encerrado inesperadamente, geralmente por falha de leitura/gravação no disco.'],
+  ['0x00000119', 'PLACA DE VÍDEO (PLACA MÃE SE FOR ONBOARD) — erro interno do escalonador de vídeo.'],
+  ['0x000000EA', 'PLACA DE VÍDEO — geralmente ligado a driver de vídeo travado/desatualizado; se persistir após atualizar o driver, testar a placa de vídeo.'],
+  ['0x0000007E', 'Geralmente causado por driver (verificar driver de vídeo/rede primeiro); se persistir após reinstalar/atualizar drivers, pode indicar MEMÓRIA RAM ou PROCESSADOR com defeito.'],
+  ['0x0000007F', 'PROCESSADOR — geralmente indica CPU com defeito (núcleo ou cache); também pode ser causado por overclock ou superaquecimento.'],
+];
+
+const AI_PREFIX = 'IA: ';
+
+export const BSOD_CAUSES = new Map([
+  ...RAW_CAUSES.map(([hex, causa]) => [parseInt(hex, 16), causa]),
+  ...RAW_CAUSES_AI.map(([hex, causa]) => [parseInt(hex, 16), AI_PREFIX + causa]),
+]);
 
 export function getCauseForCode(code) {
   if (code == null) return null;
