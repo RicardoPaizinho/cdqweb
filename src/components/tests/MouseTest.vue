@@ -45,18 +45,23 @@
               <div class="btn-hw-neon" :class="{ active: buttons.left }">
                 <span class="tech-font">LEFT CLICK</span>
               </div>
-              
-              <div class="btn-hw-neon optional-btn" :class="{ active: buttons.middle, captured: middleCaptured }">
+
+              <div
+                class="btn-hw-neon2 optional-btn"
+                :class="{ active: buttons.middle, captured: middleCaptured }"
+                title="Clique do meio (opcional, não bloqueia o PASS)"
+              >
                 <span class="tech-font">MID</span>
-                
               </div>
 
               <div class="btn-hw-neon" :class="{ active: buttons.right }">
                 <span class="tech-font">RIGHT CLICK</span>
               </div>
-
-
             </div>
+
+            <p class="panel-footnote tech-font">
+              MOVA O CURSOR, CLIQUE E ARRASTE PARA VALIDAR CADA SENSOR
+            </p>
           </div>
 
           <div class="tools-section">
@@ -85,8 +90,8 @@
                   <span v-else class="tech-font">ALVO</span>
                 </div>
               </div>
-              <p class="hint tech-font" v-if="!checks.drag">
-                {{ checks.scroll ? 'ARRASTE O PACOTE ATÉ O ALVO' : 'USE O SCROLL PARA AMPLIAR O PACOTE' }}
+              <p class="hint tech-font" :class="{ ready: checks.scroll }" v-if="!checks.drag">
+                {{ checks.scroll ? '✓ ARRASTE O PACOTE ATÉ O ALVO' : 'USE O SCROLL PARA AMPLIAR O PACOTE' }}
               </p>
             </div>
 
@@ -132,12 +137,12 @@ const allDone = computed(() => Object.values(checks).every(v => v === true));
 
 const formatLabel = (key) => {
   const map = {
-    leftClick: 'CLIQUE ESQ.',
-    leftDblClick: 'DUPLO ESQ.',
-    rightClick: 'CLIQUE DIR.',
-    rightDblClick: 'DUPLO DIR.',
-    scroll: 'SCROLL / ZOOM',
-    drag: 'DRAG & DROP'
+    leftClick: 'CLIQUE ESQUERDO',
+    leftDblClick: 'CLIQUE DUPLO ESQ.',
+    rightClick: 'CLIQUE DIREITO',
+    rightDblClick: 'CLIQUE DUPLO DIR.',
+    scroll: 'ROLAGEM / ZOOM',
+    drag: 'ARRASTAR E SOLTAR'
   };
   return map[key];
 };
@@ -206,7 +211,10 @@ onUnmounted(() => {
 
 <style scoped>
 /* CONFIGURAÇÃO BASE */
-.test-container { display: flex; flex-direction: column; gap: 15px; color: var(--text-main); padding: 10px; height: 100%; }
+.test-container {
+  display: flex; flex-direction: column; gap: 15px; color: var(--text-main); padding: 10px; height: 100%;
+  --warn: #f5a623; --warn-glow: rgba(245, 166, 35, 0.35);
+}
 .tech-font { font-family: var(--font-tech); letter-spacing: 2px; font-weight: bold; }
 
 /* HEADER */
@@ -263,16 +271,21 @@ onUnmounted(() => {
 }
 
 .btn-hw-neon2 {
-  height: 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  height: 38px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border);
   border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  color: var(--text-dim); transition: 0.2s;
+  color: var(--text-dim); transition: 0.3s; cursor: help;
 }
 .btn-hw-neon2 span.tech-font { font-size: 0.5rem; }
 .btn-hw-neon2.active {
-  background: var(--accent-glow); border-color: var(--accent);
-  color: var(--text-main); box-shadow: 0 0 10px var(--accent-glow);
+  background: var(--warn-glow); border-color: var(--warn); border-style: solid;
+  color: var(--text-main); box-shadow: 0 0 10px var(--warn-glow);
 }
-.optional-btn.captured:not(.active) { border-color: var(--text-success); color: var(--text-success); }
+.optional-btn.captured:not(.active) { border-color: var(--text-success); border-style: solid; color: var(--text-success); }
+
+.panel-footnote {
+  margin-top: 14px; font-size: 0.6rem; font-weight: normal; letter-spacing: 1px;
+  color: var(--text-dim); text-align: center; opacity: 0.7;
+}
 
 /* FERRAMENTAS DINÂMICAS */
 .tools-row { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
@@ -282,7 +295,12 @@ onUnmounted(() => {
 .drag-item.ready .drag-icon { filter: drop-shadow(0 0 10px var(--accent-glow)); }
 .drop-target { width: 90px; height: 70px; border: 2px dashed var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 0.65rem; }
 .drop-target.success { border-style: solid; border-color: var(--text-success); color: var(--text-success); }
-.hint { font-size: 0.6rem; color: var(--text-dim); text-align: center; margin: 0; }
+.hint {
+  font-size: 0.75rem; text-align: center; margin: 0; padding: 8px 14px;
+  border-radius: 6px; width: 100%; box-sizing: border-box;
+  color: var(--warn); background: var(--warn-glow); border: 1px solid var(--warn);
+}
+.hint.ready { color: var(--text-success); background: rgba(78, 205, 196, 0.12); border-color: var(--text-success); }
 
 /* CHECKLIST */
 .status-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }

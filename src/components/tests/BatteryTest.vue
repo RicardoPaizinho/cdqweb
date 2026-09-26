@@ -27,74 +27,94 @@
       <!-- COLUNA DA ESQUERDA: INFORMAÇÕES E CHECKLIST -->
       <div class="info-sidebar">
         
+        <p v-if="loading" class="loading-banner tech-font">CONECTANDO AO AGENTE LOCAL...</p>
+
+        <p v-if="connectionError" class="connection-error tech-font">⚠ {{ connectionError }}</p>
+
         <!-- Checklist de Carga / Descarga (Movido para o Topo) -->
-        <div class="checklist card-glass">
+        <div class="checklist card-glass" :class="{ stale: !!connectionError }">
           <span class="mini-label tech-font">VALIDAÇÃO DE CICLO</span>
-          <div class="check-item" :class="{ 'check-done': hasDetectedCharging }">
-            <span class="icon">{{ hasDetectedCharging ? '✔' : '○' }}</span>
-            Detectar Carregamento (Fonte Conectada)
-          </div>
-          <div class="check-item" :class="{ 'check-done': hasDetectedDischarging }">
-            <span class="icon">{{ hasDetectedDischarging ? '✔' : '○' }}</span>
-            Detectar Descarregamento (Somente Bateria)
-          </div>
-          <p class="hint tech-font" v-if="!hasDetectedCharging || !hasDetectedDischarging">
-            Conecte e desconecte a fonte para habilitar o PASS.
+
+          <p v-if="notApplicable" class="no-battery-msg tech-font">
+            ⚠ NENHUMA BATERIA DETECTADA NESTE EQUIPAMENTO — CICLO NÃO APLICÁVEL.
           </p>
+          <template v-else>
+            <div class="check-item" :class="{ 'check-done': hasDetectedCharging }">
+              <span class="icon">{{ hasDetectedCharging ? '✔' : '○' }}</span>
+              Detectar Carregamento (Fonte Conectada)
+            </div>
+            <div class="check-item" :class="{ 'check-done': hasDetectedDischarging }">
+              <span class="icon">{{ hasDetectedDischarging ? '✔' : '○' }}</span>
+              Detectar Descarregamento (Somente Bateria)
+            </div>
+            <p class="hint tech-font" v-if="!hasDetectedCharging || !hasDetectedDischarging">
+              Conecte e desconecte a fonte para habilitar o PASS.
+            </p>
+          </template>
         </div>
 
-        <!-- Status Principal -->
-        <div class="status-bar card-glass">
-          <span class="tech-font mini-label">STATUS:</span>
-          <span class="tech-font status-text" :class="isCharging ? 'text-accent' : (isDischarging ? 'text-warning' : '')">
-            {{ chargingStatus }}
-          </span>
+        <!-- Status Principal + Bateria Visual -->
+        <div class="status-bar card-glass" :class="{ stale: !!connectionError }">
+          <div class="status-info">
+            <span class="tech-font mini-label">STATUS:</span>
+            <span class="tech-font status-text" :class="isCharging ? 'text-accent' : (isDischarging ? 'text-warning' : '')">
+              {{ chargingStatus }}
+            </span>
+          </div>
+
+          <!-- Bateria Estilizada Liquid -->
+          <div class="fancy-battery-container">
+            <div class="fancy-battery-body">
+              <div class="battery-glass-shine"></div>
+              <div
+                class="battery-liquid"
+                :style="{
+                  width: currentCapacityPercent + '%',
+                  background: getLiquidGradient()
+                }"
+              >
+                <div class="battery-wave" :class="{ 'animating': isCharging }"></div>
+              </div>
+            </div>
+            <div class="fancy-battery-cap"></div>
+          </div>
         </div>
 
-        <p v-if="connectionError" class="connection-error">{{ connectionError }}</p>
-
-        <!-- Métricas Rápidas & Bateria Visual -->
-        <div class="metrics-section card-glass">
-          <div class="capacity-header">
+        <!-- Capacidade e Saúde lado a lado -->
+        <div class="metrics-section card-glass" :class="{ stale: !!connectionError }">
+          <div class="metrics-row">
             <div class="capacity-block">
               <span class="mini-label tech-font">CAPACIDADE ATUAL</span>
               <div class="metric-value tech-font">{{ fmt(currentCapacityPercent, 2) }}%</div>
             </div>
 
-            <!-- Bateria Estilizada Liquid -->
-            <div class="fancy-battery-container">
-              <div class="fancy-battery-body">
-                <div class="battery-glass-shine"></div>
-                <div 
-                  class="battery-liquid" 
-                  :style="{ 
-                    width: currentCapacityPercent + '%', 
-                    background: getLiquidGradient() 
-                  }"
-                >
-                  <div class="battery-wave" :class="{ 'animating': isCharging }"></div>
+            <!-- Saúde da Bateria (dado mais crítico do diagnóstico -> gauge grande e colorido) -->
+            <div class="health-block">
+              <div class="health-ring-wrap">
+                <svg viewBox="0 0 36 36" class="health-ring">
+                  <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path
+                    class="ring-fill"
+                    :style="{ stroke: healthTier.color }"
+                    :stroke-dasharray="`${batteryHealthPercent ?? 0}, 100`"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div class="health-ring-center">
+                  <span class="tech-font health-ring-value" :style="{ color: healthTier.color }">{{ fmt(batteryHealthPercent, 0) }}%</span>
                 </div>
               </div>
-              <div class="fancy-battery-cap"></div>
-            </div>
-          </div>
-
-          <!-- Barra de Conservação -->
-          <div class="health-block">
-            <div class="health-labels">
-              <span class="mini-label tech-font">NÍVEL DE CONSERVAÇÃO</span>
-              <span class="tech-font health-value" :class="(batteryHealthPercent ?? 0) < 70 ? 'text-fail' : 'text-pass'">
-                {{ fmt(batteryHealthPercent, 2) }}%
-              </span>
-            </div>
-            <div class="health-bar-bg">
-              <div class="health-bar-fill" :style="{ width: (batteryHealthPercent ?? 0) + '%' }"></div>
+              <div class="health-info">
+                <span class="mini-label tech-font">CONSERVAÇÃO</span>
+                <span class="tech-font health-tier-label" :style="{ color: healthTier.color }">{{ healthTier.label }}</span>
+                <span class="tech-font health-exact-value">{{ fmt(batteryHealthPercent, 2) }}%</span>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Tabela Detalhada -->
-        <div class="data-table card-glass">
+        <div class="data-table card-glass" :class="{ stale: !!connectionError }">
           <div class="data-row">
             <span class="tech-font label">DISPOSITIVO:</span>
             <span class="tech-font value">{{ deviceName }}</span>
@@ -144,7 +164,7 @@
       </div>
 
       <!-- COLUNA DA DIREITA: GRÁFICO EXPANSIVO -->
-      <div class="chart-section card-glass">
+      <div class="chart-section card-glass" :class="{ stale: !!connectionError }">
         <div class="chart-header">
           <div class="chart-title-group">
             <span class="tech-font chart-main-title">HISTÓRICO E PROJEÇÃO TEMPORAL</span>
@@ -210,13 +230,13 @@
               <text x="416.6" y="274" fill="rgba(0, 255, 65, 0.4)" font-size="8" text-anchor="middle" class="tech-font">+20m</text>
             </g>
 
-            <!-- Preenchimento e Linha do Histórico -->
-            <polygon v-if="chartAreaPath" :points="chartAreaPath" fill="url(#chartGradient)" />
-            <polyline v-if="chartLinePoints" :points="chartLinePoints" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            <!-- Preenchimento e Linha do Histórico (curva suavizada, não segmentos retos) -->
+            <path v-if="chartAreaPath" :d="chartAreaPath" fill="url(#chartGradient)" stroke="none" />
+            <path v-if="chartLinePath" :d="chartLinePath" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
 
             <!-- Preenchimento e Linha da Projeção -->
-            <polygon v-if="projectionAreaPath" :points="projectionAreaPath" fill="url(#projectedGradient)" />
-            <polyline v-if="projectionLinePoints" :points="projectionLinePoints" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2" stroke-dasharray="4,4" stroke-opacity="0.8" />
+            <path v-if="projectionAreaPath" :d="projectionAreaPath" fill="url(#projectedGradient)" stroke="none" />
+            <path v-if="projectionLinePath" :d="projectionLinePath" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2" stroke-dasharray="4,4" stroke-opacity="0.8" />
 
             <!-- Indicador Ponto Pulsante do Presente -->
             <circle :cx="250" :cy="currentCenterY" r="5" fill="var(--accent, #00ff41)" />
@@ -276,9 +296,21 @@ const getLiquidGradient = () => {
   return 'linear-gradient(90deg, #ff416c, #ff4b2b)';
 };
 
+// Classificação de saúde da bateria: cor + rótulo, para dar destaque ao dado mais importante do teste
+const healthTier = computed(() => {
+  const h = batteryHealthPercent.value;
+  if (h == null) return { label: '—', color: 'var(--text-dim, #888)' };
+  if (h >= 80) return { label: 'SAUDÁVEL', color: 'var(--text-success, #4ecdc4)' };
+  if (h >= 50) return { label: 'MODERADA', color: '#f1c40f' };
+  return { label: 'CRÍTICA', color: '#e74c3c' };
+});
+
 function fmt(value, digits = 2) {
   return typeof value === 'number' ? value.toFixed(digits) : '—';
 }
+
+// Situação em que não há bateria física para testar (ex: desktop) — o checklist nunca fecharia sozinho
+const notApplicable = computed(() => !loading.value && !connectionError.value && !batteryDetected.value);
 
 // Mapeia 0% -> Y=260 e 100% -> Y=20 no SVG ampliado
 const currentCenterY = computed(() => {
@@ -297,25 +329,53 @@ const timeToFullMinutes = computed(() => {
   return Math.round(hours * 60);
 });
 
+// Converte uma lista de pontos {x,y} numa curva suave (Catmull-Rom -> Bézier),
+// em vez de segmentos retos entre amostras — evita o efeito "serrote" com poucos pontos.
+function smoothPath(points) {
+  if (!points || points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x},${points[0].y}`;
+  if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
+
+  let d = `M ${points[0].x},${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+  }
+  return d;
+}
+
 // Histórico (X: 0 -> 250)
-const chartLinePoints = computed(() => {
-  if (historyData.value.length === 0) return `0,${currentCenterY.value} 250,${currentCenterY.value}`;
-  
+const chartHistoryPoints = computed(() => {
+  if (historyData.value.length === 0) {
+    const y = currentCenterY.value;
+    return [{ x: 0, y }, { x: 250, y }];
+  }
   const count = historyData.value.length;
   return historyData.value.map((val, idx) => {
     const x = count > 1 ? (idx / (count - 1)) * 250 : 250;
     const y = 260 - (val / 100) * 240;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+    return { x, y };
+  });
 });
+
+const chartLinePath = computed(() => smoothPath(chartHistoryPoints.value));
 
 const chartAreaPath = computed(() => {
-  const linePoints = chartLinePoints.value;
-  if (!linePoints) return '';
-  return `0,260 ${linePoints} 250,260`;
+  const pts = chartHistoryPoints.value;
+  if (pts.length === 0) return '';
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  return `${smoothPath(pts)} L ${last.x},260 L ${first.x},260 Z`;
 });
 
-// Projeção (X: 250 -> 500)
+// Projeção (X: 250 -> 500) — mais passos = curva mais fiel à interpolação, não só mais reta
 const projectionPointsArray = computed(() => {
   const currentPct = currentCapacityPercent.value || 0;
 
@@ -327,30 +387,30 @@ const projectionPointsArray = computed(() => {
   }
 
   const points = [];
-  const steps = 10;
-  
+  const steps = 24;
+
   for (let i = 0; i <= steps; i++) {
     const progress = i / steps;
     const x = 250 + progress * 250;
-    
+
     const factor = isCharging.value ? Math.sin((progress * Math.PI) / 2) : progress;
     const interpolatedPct = currentPct + (targetPct - currentPct) * factor;
     const y = 260 - (interpolatedPct / 100) * 240;
 
-    points.push({ x: x.toFixed(1), y: y.toFixed(1) });
+    points.push({ x, y });
   }
 
   return points;
 });
 
-const projectionLinePoints = computed(() => {
-  return projectionPointsArray.value.map(p => `${p.x},${p.y}`).join(' ');
-});
+const projectionLinePath = computed(() => smoothPath(projectionPointsArray.value));
 
 const projectionAreaPath = computed(() => {
-  const points = projectionLinePoints.value;
-  if (!points) return '';
-  return `250,260 ${points} 500,260`;
+  const pts = projectionPointsArray.value;
+  if (pts.length === 0) return '';
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  return `${smoothPath(pts)} L ${last.x},260 L ${first.x},260 Z`;
 });
 
 async function fetchBatteryData() {
@@ -484,28 +544,47 @@ const goBack = () => emit('test-cancelled');
 .checklist { display: flex; flex-direction: column; gap: 6px; }
 .check-item { font-size: 0.7rem; color: var(--text-dim, #777); display: flex; align-items: center; gap: 8px; opacity: 0.5; transition: 0.3s; }
 .check-done { opacity: 1; color: var(--text-success, #00ff41); }
+.no-battery-msg { font-size: 0.68rem; color: #f1c40f; margin: 4px 0 0 0; line-height: 1.4; }
 
-/* STATUS BAR */
-.status-bar { display: flex; justify-content: space-between; align-items: center; }
-.status-text { font-size: 0.75rem; }
-
-.connection-error {
-  background: rgba(231, 76, 60, 0.1);
-  border: 1px solid #e74c3c;
-  color: #e74c3c;
-  padding: 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
+/* Realce da instrução de como habilitar o PASS (era um texto apagado, fácil de ignorar) */
+.hint {
+  font-size: 0.68rem; color: #f1c40f; opacity: 1; margin: 4px 0 0 0;
+  padding: 6px 10px; border-radius: 6px;
+  background: rgba(241, 196, 15, 0.1); border: 1px solid rgba(241, 196, 15, 0.4);
 }
 
-/* MÉTRICAS & BATERIA VISUAL */
+/* STATUS BAR */
+.status-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.status-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.status-text { font-size: 0.75rem; }
+
+/* Estado "dados congelados" quando a conexão com o agente local cai:
+   os painéis continuam visíveis, mas claramente marcados como não-ao-vivo. */
+.stale { opacity: 0.45; filter: grayscale(0.6); pointer-events: none; }
+
+.loading-banner {
+  font-size: 0.7rem; color: var(--text-dim, #888); text-align: center;
+  padding: 6px; border: 1px dashed rgba(255,255,255,0.15); border-radius: 6px;
+}
+
+.connection-error {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: bold;
+}
+
+/* MÉTRICAS: CAPACIDADE E SAÚDE LADO A LADO */
 .metrics-section { display: flex; flex-direction: column; gap: 12px; }
-.capacity-header { display: flex; justify-content: space-between; align-items: center; }
-.capacity-block { display: flex; flex-direction: column; }
-.metric-value { font-size: 1.8rem; color: var(--accent, #00ff41); text-shadow: 0 0 10px rgba(0,255,65,0.3); }
+.metrics-row { display: flex; align-items: center; gap: 14px; }
+.capacity-block { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.metric-value { font-size: 1.5rem; color: var(--accent, #00ff41); text-shadow: 0 0 10px rgba(0,255,65,0.3); }
 
 /* BATERIA ESTILIZADA LIQUID */
-.fancy-battery-container { display: flex; align-items: center; }
+.fancy-battery-container { display: flex; align-items: center; flex-shrink: 0; }
 .fancy-battery-body {
   width: 75px; height: 30px;
   border: 2px solid rgba(255, 255, 255, 0.7);
@@ -523,11 +602,17 @@ const goBack = () => emit('test-cancelled');
 @keyframes waveMotion { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .fancy-battery-cap { width: 4px; height: 14px; background: rgba(255, 255, 255, 0.7); border-radius: 0 3px 3px 0; }
 
-.health-block { display: flex; flex-direction: column; gap: 4px; }
-.health-labels { display: flex; justify-content: space-between; align-items: center; }
-.health-value { font-size: 0.75rem; }
-.health-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; }
-.health-bar-fill { height: 100%; background: var(--text-success, #00ff41); box-shadow: 0 0 8px var(--text-success, #00ff41); border-radius: 3px; }
+/* SAÚDE DA BATERIA — gauge circular, ao lado da capacidade, com divisória entre os dois */
+.health-block { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; border-left: 1px solid rgba(255,255,255,0.08); padding-left: 14px; }
+.health-ring-wrap { position: relative; width: 50px; height: 50px; flex-shrink: 0; }
+.health-ring { width: 100%; height: 100%; }
+.ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
+.ring-fill { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.6s ease; }
+.health-ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.health-ring-value { font-size: 0.68rem; }
+.health-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.health-tier-label { font-size: 0.85rem; }
+.health-exact-value { font-size: 0.62rem; color: var(--text-dim, #888); font-weight: normal; }
 
 /* TABELA */
 .data-table { display: flex; flex-direction: column; }
@@ -563,7 +648,4 @@ const goBack = () => emit('test-cancelled');
 .mini-label { font-size: 0.62rem; color: var(--text-dim, #777); }
 .text-warning { color: #f1c40f; }
 .text-accent { color: var(--accent, #00ff41); }
-.text-pass { color: var(--text-success, #00ff41); }
-.text-fail { color: #e74c3c; }
-.hint { font-size: 0.6rem; color: var(--text-dim, #888); opacity: 0.7; margin: 2px 0 0 0; }
 </style>
