@@ -129,7 +129,7 @@
                   <!-- contorno por cima, nítido em qualquer nível de preenchimento -->
                   <path class="heart-outline" :style="{ stroke: healthTier.color }" :d="HEART_PATH" />
                 </svg>
-                <div class="heart-center-value tech-font" :style="{ color: healthTier.color }">{{ fmt(batteryHealthPercent, 0) }}%</div>
+                <div class="heart-center-value tech-font">{{ fmt(batteryHealthPercent, 0) }}%</div>
               </div>
               <div class="health-info">
                 <span class="mini-label tech-font">CONSERVAÇÃO</span>
@@ -624,8 +624,8 @@ const goBack = () => emit('test-cancelled');
 }
 
 /* MÉTRICAS: CAPACIDADE E SAÚDE LADO A LADO */
-.metrics-section { display: flex; flex-direction: column; gap: 12px; }
-.metrics-row { display: flex; align-items: center; gap: 14px; }
+.metrics-section { display: flex; flex-direction: column; gap: 2px; }
+.metrics-row { display: flex; align-items: center; gap: -10px; }
 .capacity-block { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .metric-value { font-size: 1.5rem; color: var(--accent, #00ff41); text-shadow: 0 0 10px rgba(0,255,65,0.3); }
 
@@ -650,11 +650,11 @@ const goBack = () => emit('test-cancelled');
 
 /* SAÚDE DA BATERIA — coração com preenchimento líquido, ao lado da capacidade,
    com divisória entre os dois */
-.health-block { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; border-left: 1px solid rgba(255,255,255,0.08); padding-left: 10px; }
+.health-block { display: flex; align-items: center; gap: -10px; flex: 1; min-width: 0; border-left: 1px solid rgba(255,255,255,0.08); padding-left: 5px; }
 .health-heart-wrap { position: relative; width: 56px; height: 56px; flex-shrink: 0; }
 .health-heart { width: 100%; height: 100%; overflow: visible; }
 
-.heart-bg { fill: rgba(255,255,255,0.06); }
+.heart-bg { fill: rgba(238, 34, 34, 0.06); }
 .heart-outline { fill: none; stroke-width: 1.2; opacity: 0.9; vector-effect: non-scaling-stroke; }
 
 .heart-liquid { transition: y 0.7s ease; }
@@ -673,12 +673,19 @@ const goBack = () => emit('test-cancelled');
 
 .heart-center-value {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 0.62rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none;
+  font-size: 0.88rem; font-weight: 800; color: #fff; pointer-events: none;
+  /* Contorno escuro simulado com sombras em cruz — mantém o texto legível tanto
+     em cima do líquido vermelho (cheio) quanto do fundo cinza-esverdeado (vazio),
+     igual à referência (número branco contornado, nunca "sumindo" no fundo). */
+  text-shadow:
+    -1px -1px 0 rgba(0,0,0,0.85), 1px -1px 0 rgba(0,0,0,0.85),
+    -1px 1px 0 rgba(0,0,0,0.85), 1px 1px 0 rgba(0,0,0,0.85),
+    0 0 4px rgba(0,0,0,0.5);
 }
 
-.health-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.health-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .health-tier-label { font-size: 0.85rem; }
-.health-exact-value { font-size: 0.62rem; color: var(--text-dim, #888); font-weight: normal; }
+.health-exact-value { font-size: 0.72rem; color: var(--text-dim, #080000); font-weight: normal; }
 
 /* TABELA */
 .data-table { display: flex; flex-direction: column; }
