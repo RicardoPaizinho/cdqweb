@@ -1,14 +1,10 @@
 <template>
   <div class="test-container">
-    <header class="test-header">
-      <div class="title-group">
-        <h4 class="tech-font">TESTE DE MICROFONE</h4>
-        <button class="btn-glass back-neon tech-font" @click="goBack">VOLTAR</button>
-      </div>
-      <div class="device-mini-info tech-font">
-        STATUS: <span :class="isRecording ? 'text-accent' : 'text-dim'">{{ isRecording ? 'RECORDING' : 'READY' }}</span>
-      </div>
-    </header>
+    <!-- Título e botão VOLTAR ficam só no MicTest.vue (tela mãe) — mostrar de
+    novo aqui duplicava o cabeçalho quando este submódulo estava ativo. -->
+    <div class="status-bar-mic tech-font">
+      STATUS: <span :class="isRecording ? 'text-accent' : 'text-dim'">{{ isRecording ? 'RECORDING' : 'READY' }}</span>
+    </div>
 
     <div class="main-layout">
       <div class="test-content glass-panel audio-main-area">
@@ -195,11 +191,6 @@ const handleEnd = (result) => {
   emit('test-completed', result);
 };
 
-const goBack = () => {
-  stopAll();
-  emit('test-cancelled');
-};
-
 async function getMics() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -226,12 +217,11 @@ onBeforeUnmount(() => stopAll());
 .test-container { display: flex; flex-direction: column; gap: 15px; color: var(--text-main); padding: 10px; height: 100%; }
 .tech-font { font-family: var(--font-tech); letter-spacing: 1px; font-weight: bold; font-size: 0.75rem; }
 
-.test-header {
-  display: flex; justify-content: space-between; align-items: center;
+.status-bar-mic {
+  display: flex; align-items: center; gap: 6px;
   border-bottom: 1px solid var(--border); padding-bottom: 12px;
+  color: var(--text-dim); font-size: 0.7rem;
 }
-.title-group { display: flex; align-items: center; gap: 20px; }
-.title-group h4 { margin: 0; color: var(--accent); text-transform: uppercase; }
 
 .main-layout { display: grid; grid-template-columns: 1fr 100px; gap: 20px; flex-grow: 1; }
 
@@ -255,8 +245,15 @@ onBeforeUnmount(() => stopAll());
 }
 .mini-label { font-size: 0.6rem; color: var(--accent); }
 .glass-select {
-  background: transparent; border: 1px solid var(--border); color: var(--text-main);
+  background: var(--bg-panel, #1a1a1a); border: 1px solid var(--border); color: var(--text-main);
   padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; flex: 1; outline: none;
+}
+/* O <select> herda a cor de fundo acima no estado fechado, mas o Chrome/Edge
+   ignoram isso pro popup de opções e caem pro branco padrão do SO — precisa
+   estilizar <option> à parte pra seguir o tema também na lista aberta. */
+.glass-select option {
+  background: var(--bg-panel, #1a1a1a);
+  color: var(--text-main);
 }
 
 .audio-controls { display: flex; gap: 15px; width: 100%; }
@@ -280,10 +277,4 @@ onBeforeUnmount(() => stopAll());
 .pass-neon:disabled { opacity: 0.1; cursor: not-allowed; }
 .pass-neon:hover:not(:disabled) { border-color: var(--text-success); color: var(--text-success); box-shadow: 0 0 20px var(--status-pass-glow); }
 .fail-neon:hover { border-color: #ff4d4d; color: #ff4d4d; box-shadow: 0 0 20px var(--status-fail-glow); }
-
-.back-neon { 
-  padding: 6px 18px; border-radius: 4px; background: rgba(255,255,255,0.05); 
-  border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); cursor: pointer;
-}
-.back-neon:hover { border-color: var(--accent); color: var(--accent); }
 </style>

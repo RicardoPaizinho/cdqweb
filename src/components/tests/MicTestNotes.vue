@@ -1,11 +1,8 @@
 <template>
   <div class="test-container">
+    <!-- Título e botão VOLTAR ficam só no MicTest.vue (tela mãe) — evita
+    duplicar o cabeçalho quando este submódulo está ativo. -->
     <header class="test-header">
-      <div class="title-group">
-        <h4 class="tech-font">DIAGNÓSTICO AUTOMÁTICO: SPEAKER & MIC</h4>
-        <button class="btn-default tech-font" @click="goBack">VOLTAR</button>
-      </div>
-      
       <!-- Botões de controle movidos para o topo -->
       <div class="controls-group">
         <button 
@@ -31,7 +28,16 @@
 
     <div class="main-layout">
       <div class="test-content glass-panel">
-        
+
+        <div class="mic-selector-bar">
+          <label class="tech-font mini-label">INPUT_DEVICE:</label>
+          <select v-model="selectedMicId" class="glass-select tech-font" :disabled="testInProgress">
+            <option v-for="mic in availableMics" :key="mic.id" :value="mic.id">
+              {{ mic.name }}
+            </option>
+          </select>
+        </div>
+
         <div class="viz-section">
           <canvas ref="canvasRef" class="waveform-canvas card-glass" width="600" height="180"></canvas>
           <div class="freq-display tech-font">
@@ -85,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -96,6 +102,8 @@ const testInProgress = ref(false);
 const selectedNote = ref({ name: 'A4', freq: 440.00 }); // Default
 const capturedFreqs = ref({ left: null, right: null });
 const finalResult = ref(null);
+const availableMics = ref([]);
+const selectedMicId = ref(null);
 
 const notes = [
   { name: 'C4', freq: 261.63 },
@@ -109,26 +117,54 @@ let analyser = null;
 let stream = null;
 let animationId = null;
 
+// Só lista nome/id de verdade depois de já termos permissão (o navegador
+// esconde o label dos dispositivos até o primeiro getUserMedia bem-sucedido).
+async function refreshMicList() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    availableMics.value = devices
+      .filter((d) => d.kind === 'audioinput')
+      .map((d) => ({ id: d.deviceId, name: d.label || 'Microfone' }));
+  } catch (e) { /* mantém a lista anterior */ }
+}
+
 // Inicializa Áudio Bruto
 async function initAudio() {
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: { 
-        echoCancellation: false, 
-        noiseSuppression: false, 
-        autoGainControl: false 
-      } 
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: selectedMicId.value ? { exact: selectedMicId.value } : undefined,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
     });
     const source = audioCtx.createMediaStreamSource(stream);
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 4096; 
+    analyser.fftSize = 4096;
     source.connect(analyser);
     drawSpectrogram();
+
+    // Sincroniza o seletor com o device que o navegador realmente usou (útil
+    // na primeira chamada, quando selectedMicId ainda é null / mic padrão).
+    await refreshMicList();
+    const usedId = stream.getAudioTracks()[0]?.getSettings()?.deviceId;
+    if (usedId) selectedMicId.value = usedId;
   } catch (e) {
     console.error("Erro ao acessar hardware de áudio:", e);
   }
 }
+
+// Troca manual de microfone no seletor: reabre o pipeline de áudio já
+// apontando pro device escolhido. Ignora a atribuição inicial (oldId null),
+// que é só o initAudio() sincronizando o valor detectado automaticamente.
+watch(selectedMicId, (newId, oldId) => {
+  if (oldId !== null && newId !== oldId && !testInProgress.value) {
+    stopAll();
+    initAudio();
+  }
+});
 
 // Loop de Desenho e Detecção de Frequência
 function drawSpectrogram() {
@@ -269,8 +305,6 @@ const endTest = (res) => {
   emit('test-completed', { combined: true, result: res === 'PASS' ? 'PASS' : 'FAIL' });
 };
 
-const goBack = () => { stopAll(); emit('test-cancelled'); };
-
 function stopAll() {
   if (animationId) cancelAnimationFrame(animationId);
   if (stream) stream.getTracks().forEach(t => t.stop());
@@ -286,15 +320,30 @@ onBeforeUnmount(stopAll);
 .tech-font { font-family: 'Consolas', monospace; letter-spacing: 1px; }
 
 .test-header { display: flex; flex-direction: column; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.title-group { display: flex; justify-content: space-between; align-items: center; }
+
+.mic-selector-bar {
+  width: 100%; display: flex; align-items: center; gap: 15px;
+  padding: 10px 15px; background: rgba(0,0,0,0.2); border-radius: 8px;
+}
+.mic-selector-bar .mini-label { font-size: 0.65rem; color: #888; margin-bottom: 0; }
+.glass-select {
+  background: var(--bg-panel, #10181d); border: 1px solid rgba(255,255,255,0.1);
+  color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem;
+  flex: 1; outline: none;
+}
+/* Sem isso o popup de opções cai pro branco padrão do SO (Chrome/Edge ignoram
+   o background do <select> fechado pra estilizar a lista aberta). */
+.glass-select option {
+  background: var(--bg-panel, #10181d);
+  color: #fff;
+}
+.glass-select:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Grupo de botões no topo */
 .controls-group { display: flex; gap: 10px; width: 100%; }
 .controls-group button { flex: 1; padding: 12px; font-weight: bold; cursor: pointer; border-radius: 6px; border: none; transition: 0.2s; }
 
 /* Classes de Cores Padrão */
-.btn-default { background: #334155; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-.btn-default:hover { background: #475569; }
 .btn-success { background: #16a34a; color: #fff; }
 .btn-success:hover:not(:disabled) { background: #15803d; }
 .btn-danger { background: #dc2626; color: #fff; }

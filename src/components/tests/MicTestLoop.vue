@@ -1,20 +1,25 @@
 <template>
   <div class="test-container">
-    <header class="test-header">
-      <div class="title-group">
-        <h4 class="tech-font">TESTE DE ÁUDIO / MICROFONE</h4>
-        <button class="btn-glass back-neon tech-font" @click="goBack">VOLTAR</button>
-      </div>
-      <div class="device-mini-info tech-font">
-        <span :class="['status-tag', isRecording ? 'active' : 'idle']">
-          {{ isRecording ? 'CAPTANDO ÁUDIO BRUTO' : 'MICROFONE DESLIGADO' }}
-        </span>
-      </div>
-    </header>
+    <!-- Título e botão VOLTAR ficam só no MicTest.vue (tela mãe) — evita
+    duplicar o cabeçalho quando este submódulo está ativo. -->
+    <div class="status-bar-mic tech-font">
+      <span :class="['status-tag', isRecording ? 'active' : 'idle']">
+        {{ isRecording ? 'CAPTANDO ÁUDIO BRUTO' : 'MICROFONE DESLIGADO' }}
+      </span>
+    </div>
 
     <div class="main-layout">
       <div class="test-content glass-panel">
-        
+
+        <div class="mic-selector-bar">
+          <label class="tech-font mini-label">INPUT_DEVICE:</label>
+          <select v-model="selectedMicId" class="glass-select tech-font">
+            <option v-for="mic in availableMics" :key="mic.id" :value="mic.id">
+              {{ mic.name }}
+            </option>
+          </select>
+        </div>
+
         <div class="vu-meter-container">
           <div class="vu-labels tech-font">
             <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
@@ -49,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -58,6 +63,8 @@ const volume = ref(0);
 const peak = ref(0);
 const isRecording = ref(false);
 const loopbackEnabled = ref(false);
+const availableMics = ref([]);
+const selectedMicId = ref(null);
 
 // Web Audio Objects
 let audioContext = null;
@@ -66,11 +73,23 @@ let microphone = null;
 let javascriptNode = null;
 let stream = null;
 
+// Só lista nome/id de verdade depois de já termos permissão (o navegador
+// esconde o label dos dispositivos até o primeiro getUserMedia bem-sucedido).
+async function refreshMicList() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    availableMics.value = devices
+      .filter((d) => d.kind === 'audioinput')
+      .map((d) => ({ id: d.deviceId, name: d.label || 'Microfone' }));
+  } catch (e) { /* mantém a lista anterior */ }
+}
+
 async function startAudio() {
   try {
     // Constraints para Áudio Bruto (RAW)
     const constraints = {
       audio: {
+        deviceId: selectedMicId.value ? { exact: selectedMicId.value } : undefined,
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,
@@ -86,16 +105,32 @@ async function startAudio() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     microphone = audioContext.createMediaStreamSource(stream);
-    
+
     analyser.fftSize = 256;
     microphone.connect(analyser);
 
     isRecording.value = true;
     renderMeter();
+
+    // Sincroniza o seletor com o device que o navegador realmente usou (útil
+    // na primeira chamada, quando selectedMicId ainda é null / mic padrão).
+    await refreshMicList();
+    const usedId = stream.getAudioTracks()[0]?.getSettings()?.deviceId;
+    if (usedId) selectedMicId.value = usedId;
   } catch (err) {
     console.error("Erro ao acessar microfone:", err);
   }
 }
+
+// Troca manual de microfone no seletor: reabre o pipeline de áudio já
+// apontando pro device escolhido. Ignora a atribuição inicial (oldId null),
+// que é só o startAudio() sincronizando o valor detectado automaticamente.
+watch(selectedMicId, (newId, oldId) => {
+  if (oldId !== null && newId !== oldId) {
+    stop();
+    startAudio();
+  }
+});
 
 function renderMeter() {
   const array = new Uint8Array(analyser.frequencyBinCount);
@@ -139,7 +174,6 @@ const stop = () => {
 };
 
 const endTest = (res) => { stop(); emit('test-completed', res); };
-const goBack = () => { stop(); emit('test-cancelled'); };
 
 onMounted(startAudio);
 onBeforeUnmount(stop);
@@ -149,11 +183,28 @@ onBeforeUnmount(stop);
 .test-container { display: flex; flex-direction: column; gap: 15px; color: #fff; padding: 10px; height: 100%; }
 .tech-font { font-family: 'Consolas', monospace; letter-spacing: 1px; font-weight: bold; }
 
-.test-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
+.status-bar-mic { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
 
 .status-tag { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; }
 .status-tag.active { background: rgba(0, 255, 65, 0.2); color: #00ff41; border: 1px solid #00ff41; }
 .status-tag.idle { background: rgba(255, 255, 255, 0.05); color: #888; }
+
+.mic-selector-bar {
+  width: 100%; display: flex; align-items: center; gap: 15px;
+  padding: 10px 15px; background: rgba(0,0,0,0.2); border-radius: 8px;
+}
+.mini-label { font-size: 0.6rem; color: var(--accent, #00ff41); }
+.glass-select {
+  background: var(--bg-panel, #1a1a1a); border: 1px solid var(--border, rgba(255,255,255,0.1));
+  color: var(--text-main, #fff); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem;
+  flex: 1; outline: none;
+}
+/* Sem isso o popup de opções cai pro branco padrão do SO (Chrome/Edge ignoram
+   o background do <select> fechado pra estilizar a lista aberta). */
+.glass-select option {
+  background: var(--bg-panel, #1a1a1a);
+  color: var(--text-main, #fff);
+}
 
 .main-layout { display: grid; grid-template-columns: 1fr 120px; gap: 20px; flex-grow: 1; }
 
