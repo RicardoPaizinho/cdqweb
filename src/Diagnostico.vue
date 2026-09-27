@@ -267,9 +267,20 @@ const activeProgressComponent = computed(() => {
 });
 
 // --- CICLO DE VIDA (INICIALIZAÇÃO WEB) ---
-onMounted(() => {
-  // 1. Busca os dados iniciais do hardware
-  fetchPCInfo();
+onMounted(async () => {
+  // 1. Busca os dados iniciais do hardware — precisa terminar (await) antes de
+  // tentar restaurar progresso, já que a restauração só é aceita se o serial
+  // da placa-mãe salvo bater com o deste equipamento.
+  await fetchPCInfo();
+
+  const restaurou = await globalState.tryRestoreProgress();
+  if (restaurou) {
+    // Aviso simples (mesmo padrão de confirm/alert já usado no resto do app)
+    // pra deixar claro que os resultados na tela não são de agora — o técnico
+    // precisa revisar antes de continuar, principalmente se for reteste do
+    // mesmo equipamento de propósito.
+    alert('Progresso de testes anterior encontrado para este equipamento (serial de placa-mãe conferido) e restaurado automaticamente. Revise os resultados antes de continuar.');
+  }
 
   // 2. Cria o looping para atualizar o monitor de desempenho (a cada 2 segundos)
   fetchCpuClockInfo();

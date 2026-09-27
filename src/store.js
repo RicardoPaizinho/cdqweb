@@ -9,6 +9,26 @@ const TEMA_API_URL = `${API_BASE}/usuario/tema`;
 const RELATORIO_CHECK_URL = `${API_BASE}/relatorios/check`;
 const RELATORIO_API_URL = `${API_BASE}/relatorios`;
 
+// --- CONFIGURAÇÃO DO AGENTE LOCAL (HardwareTestApp, porta 5000) ---
+// Usado só pra persistir/recuperar o progresso dos testes em disco (ver
+// persistProgress/tryRestoreProgress) — nada aqui vai pro banco remoto.
+const LOCAL_AGENT_BASE = 'http://localhost:5000/api';
+const PROGRESS_API_URL = `${LOCAL_AGENT_BASE}/progress`;
+
+// Seriais "placeholder" que BIOS/motherboards baratas devolvem quando o
+// fabricante nunca preencheu o campo de verdade. Se o serial salvo OU o atual
+// cair nessa lista, não dá pra confiar na comparação — dois notebooks
+// diferentes com BIOS sem serial bateriam like igual, restaurando o teste do
+// equipamento errado.
+const PLACEHOLDER_SERIALS = [
+  '', 'none', 'default string', 'to be filled by o.e.m.', 'n/a', '0000000000', 'system serial number'
+];
+
+function isUsableSerial(serial) {
+  const normalized = String(serial || '').trim().toLowerCase();
+  return normalized.length > 0 && !PLACEHOLDER_SERIALS.includes(normalized);
+}
+
 export const globalState = reactive({
   language: localStorage.getItem('app-lang') || 'pt',
   activeMenu: 'informacoes', 
@@ -154,6 +174,11 @@ export const globalState = reactive({
   savingReport: false,
   saveReportError: '',
 
+  // true assim que saveFinalReport() envia com sucesso pro banco remoto; volta
+  // a false a cada novo resultado de teste (saveResult), já que isso deixa o
+  // relatório já salvo desatualizado. Usado pelo aviso de "fechar sem salvar".
+  reportSaved: false,
+
   // Calcula o status geral com base em todos os testes já executados.
   // Retorna null se nenhum teste foi rodado ainda.
   get overallTestStatus() {
@@ -162,6 +187,12 @@ export const globalState = reactive({
     );
     if (executed.length === 0) return null;
     return executed.every((r) => r.result === 'PASS') ? 'PASS' : 'FAIL';
+  },
+
+  // Existe pelo menos um teste rodado que ainda não foi salvo no banco remoto —
+  // usado pelo listener de beforeunload em App.vue pra avisar antes de fechar.
+  get hasUnsavedResults() {
+    return this.overallTestStatus !== null && !this.reportSaved;
   },
 
   // Mapeia as chaves internas de testResults para os nomes das colunas no banco.
@@ -319,6 +350,8 @@ export const globalState = reactive({
 
       this.currentOS = '';
       this.reportComments = '';
+      this.reportSaved = true;
+      this.clearProgress();
       return true;
     } catch (err) {
       this.saveReportError = err.message || 'Erro ao salvar relatório.';
@@ -333,6 +366,79 @@ export const globalState = reactive({
     Object.keys(this.testResults).forEach((key) => {
       this.testResults[key].result = '';
     });
+    this.reportSaved = false;
+    this.clearProgress();
+  },
+
+  // --- PERSISTÊNCIA LOCAL DE PROGRESSO (agente C#, arquivo temp) ---
+  // Salva o estado atual dos testes no agente local a cada resultado novo, pra
+  // sobreviver a um fechamento inesperado do navegador ou do app. Best-effort:
+  // se o agente local não responder, só loga um aviso e segue (isso nunca deve
+  // travar o fluxo normal de testes).
+  async persistProgress() {
+    try {
+      const payload = {
+        motherboardSerial: this.pcInfo?.mb_SerialNumber || this.pcInfo?.serialNumber || '',
+        testResults: this.testResults,
+        autoTestSmartInfo: this.autoTestSmartInfo,
+        batteryTestInfo: this.batteryTestInfo,
+        currentOS: this.currentOS,
+        reportComments: this.reportComments,
+        savedAt: new Date().toISOString()
+      };
+      await fetch(PROGRESS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('Não foi possível salvar o progresso local:', err);
+    }
+  },
+
+  // Tenta recuperar progresso de uma sessão anterior. Só restaura se o serial
+  // salvo bater com o do equipamento atual (e nenhum dos dois for um
+  // "placeholder" de BIOS sem serial de verdade) — evita colar o progresso de
+  // um notebook diferente testado antes na mesma estação de trabalho.
+  // Chame depois que globalState.pcInfo já estiver preenchido (fetchPCInfo).
+  async tryRestoreProgress() {
+    try {
+      const response = await fetch(PROGRESS_API_URL);
+      const payload = await response.json().catch(() => null);
+      if (!payload?.found || !payload.data) return false;
+
+      const saved = payload.data;
+      const currentSerial = this.pcInfo?.mb_SerialNumber || this.pcInfo?.serialNumber || '';
+
+      if (!isUsableSerial(saved.motherboardSerial) || !isUsableSerial(currentSerial)) return false;
+      if (String(saved.motherboardSerial).trim() !== String(currentSerial).trim()) return false;
+
+      if (saved.testResults) {
+        Object.keys(this.testResults).forEach((key) => {
+          const savedResult = saved.testResults[key]?.result;
+          if (savedResult) this.testResults[key].result = savedResult;
+        });
+      }
+      if (saved.autoTestSmartInfo) this.autoTestSmartInfo = saved.autoTestSmartInfo;
+      if (saved.batteryTestInfo) this.batteryTestInfo = saved.batteryTestInfo;
+      if (saved.currentOS) this.currentOS = saved.currentOS;
+      if (saved.reportComments) this.reportComments = saved.reportComments;
+
+      return true;
+    } catch (err) {
+      console.warn('Não foi possível verificar progresso salvo:', err);
+      return false;
+    }
+  },
+
+  // Apaga o progresso local salvo — chamado após o relatório final ser enviado
+  // com sucesso (não há mais o que restaurar) e ao zerar os testes manualmente.
+  async clearProgress() {
+    try {
+      await fetch(PROGRESS_API_URL, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Não foi possível limpar o progresso local:', err);
+    }
   },
 
   // Função de Tradução que consome o arquivo i18n.js
@@ -354,6 +460,8 @@ export const globalState = reactive({
     if (this.testResults[testKey]) {
       this.testResults[testKey].result = status;
     }
+    // Um novo resultado deixa o relatório já enviado (se houver) desatualizado.
+    this.reportSaved = false;
 
     const hardwareName = this.t(`hardware.${testKey}`);
     const reportStatus = status === 'PASS' ? this.t('status.approved') : this.t('status.rejected');
@@ -365,5 +473,7 @@ export const globalState = reactive({
       status: reportStatus,
       date: new Date().toLocaleString(locale)
     });
+
+    this.persistProgress();
   }
 });

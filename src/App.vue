@@ -3,7 +3,7 @@
 // Responsável por: title bar da janela, tela de login (servidor Node em
 // app.cdqweb.com.br) e a barra de navegação entre as duas janelas
 // principais: Diagnóstico (Diagnostico.vue) e Dashboard (Dashboard.vue).
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import StepsProgress from '@/components/StepsProgress.vue';
 import Diagnostico from './Diagnostico.vue';
 import Dashboard from './Dashboard.vue';
@@ -34,9 +34,28 @@ function handleLogout() {
   loginSenha.value = '';
 }
 
+// Alerta nativo do navegador ao tentar fechar a aba/janela ou navegar pra fora
+// com testes já rodados que ainda não foram salvos no relatório final (banco
+// remoto). O progresso em si não se perde (persistProgress já salvou no
+// agente local a cada resultado), mas o técnico pode não saber disso — melhor
+// avisar do que deixar fechar sem perceber que falta enviar o relatório.
+// Navegadores modernos ignoram texto customizado e mostram uma mensagem
+// genérica própria; setar returnValue é o que aciona esse diálogo no Chrome/Edge.
+function handleBeforeUnload(event) {
+  if (globalState.hasUnsavedResults) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+}
+
 onMounted(() => {
   // Tenta restaurar uma sessão salva anteriormente (opcional)
   globalState.restoreSession();
+  window.addEventListener('beforeunload', handleBeforeUnload);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload);
 });
 </script>
 
