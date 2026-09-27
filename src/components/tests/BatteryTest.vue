@@ -88,21 +88,48 @@
               <div class="metric-value tech-font">{{ fmt(currentCapacityPercent, 2) }}%</div>
             </div>
 
-            <!-- Saúde da Bateria (dado mais crítico do diagnóstico -> gauge grande e colorido) -->
+            <!-- Saúde da Bateria (dado mais crítico do diagnóstico -> coração com
+            preenchimento líquido, em vez do gauge circular de antes) -->
             <div class="health-block">
-              <div class="health-ring-wrap">
-                <svg viewBox="0 0 36 36" class="health-ring">
-                  <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path
-                    class="ring-fill"
-                    :style="{ stroke: healthTier.color }"
-                    :stroke-dasharray="`${batteryHealthPercent ?? 0}, 100`"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
+              <div class="health-heart-wrap">
+                <svg viewBox="0 0 24 24" class="health-heart">
+                  <defs>
+                    <clipPath :id="`heartClip-${uid}`">
+                      <path :d="HEART_PATH" />
+                    </clipPath>
+                  </defs>
+
+                  <!-- coração "vazio" (contorno de fundo, sempre visível) -->
+                  <path class="heart-bg" :d="HEART_PATH" />
+
+                  <!-- líquido recortado no formato do coração -->
+                  <g :clip-path="`url(#heartClip-${uid})`">
+                    <rect class="heart-liquid" x="-4" :y="heartFillY" width="32" height="26" :style="{ fill: healthTier.color }" />
+
+                    <g :style="{ transform: `translateY(${heartFillY}px)` }">
+                      <g class="heart-wave-drift wave-back">
+                        <path
+                          class="heart-wave"
+                          d="M -24,0 Q -22,-1.9 -20,0 T -12,0 T -4,0 T 4,0 T 12,0 T 20,0 T 28,0 T 36,0 T 44,0 T 52,0 V 24 H -24 Z"
+                          :style="{ fill: healthTier.color }"
+                          opacity="0.45"
+                        />
+                      </g>
+                      <g class="heart-wave-drift wave-front">
+                        <path
+                          class="heart-wave"
+                          d="M -24,0 Q -22,-1.3 -20,0 T -12,0 T -4,0 T 4,0 T 12,0 T 20,0 T 28,0 T 36,0 T 44,0 T 52,0 V 24 H -24 Z"
+                          :style="{ fill: healthTier.color }"
+                          opacity="0.85"
+                        />
+                      </g>
+                    </g>
+                  </g>
+
+                  <!-- contorno por cima, nítido em qualquer nível de preenchimento -->
+                  <path class="heart-outline" :style="{ stroke: healthTier.color }" :d="HEART_PATH" />
                 </svg>
-                <div class="health-ring-center">
-                  <span class="tech-font health-ring-value" :style="{ color: healthTier.color }">{{ fmt(batteryHealthPercent, 0) }}%</span>
-                </div>
+                <div class="heart-center-value tech-font" :style="{ color: healthTier.color }">{{ fmt(batteryHealthPercent, 0) }}%</div>
               </div>
               <div class="health-info">
                 <span class="mini-label tech-font">CONSERVAÇÃO</span>
@@ -295,6 +322,25 @@ const getLiquidGradient = () => {
   if (lvl > 20) return 'linear-gradient(90deg, #f8b500, #fceabb)';
   return 'linear-gradient(90deg, #ff416c, #ff4b2b)';
 };
+
+// ID único da instância — evita colisão de <clipPath> se por acaso houver mais
+// de um BatteryTest montado ao mesmo tempo (não deveria, mas é barato evitar).
+const uid = `h${Math.random().toString(36).slice(2, 9)}`;
+
+// Ícone de coração (mesmo path do Material Symbols "favorite", viewBox 24x24) —
+// usado tanto pro contorno quanto pro clipPath do líquido.
+const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
+
+// Mapeia 0-100% para a coordenada Y (viewBox 0 0 24 24) onde a superfície do
+// líquido deve ficar — usa a extensão vertical real do coração (topo ~2,
+// ponta inferior ~21.35), não o viewBox inteiro, senão sobra uma faixa vazia
+// no fundo em 0% e uma sobra no topo em 100%.
+const HEART_TOP_Y = 2;
+const HEART_BOTTOM_Y = 21.35;
+const heartFillY = computed(() => {
+  const pct = Math.max(0, Math.min(100, batteryHealthPercent.value ?? 0));
+  return HEART_BOTTOM_Y - (HEART_BOTTOM_Y - HEART_TOP_Y) * (pct / 100);
+});
 
 // Classificação de saúde da bateria: cor + rótulo, para dar destaque ao dado mais importante do teste
 const healthTier = computed(() => {
@@ -602,14 +648,34 @@ const goBack = () => emit('test-cancelled');
 @keyframes waveMotion { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .fancy-battery-cap { width: 4px; height: 14px; background: rgba(255, 255, 255, 0.7); border-radius: 0 3px 3px 0; }
 
-/* SAÚDE DA BATERIA — gauge circular, ao lado da capacidade, com divisória entre os dois */
-.health-block { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; border-left: 1px solid rgba(255,255,255,0.08); padding-left: 14px; }
-.health-ring-wrap { position: relative; width: 50px; height: 50px; flex-shrink: 0; }
-.health-ring { width: 100%; height: 100%; }
-.ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
-.ring-fill { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.6s ease; }
-.health-ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.health-ring-value { font-size: 0.68rem; }
+/* SAÚDE DA BATERIA — coração com preenchimento líquido, ao lado da capacidade,
+   com divisória entre os dois */
+.health-block { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; border-left: 1px solid rgba(255,255,255,0.08); padding-left: 10px; }
+.health-heart-wrap { position: relative; width: 56px; height: 56px; flex-shrink: 0; }
+.health-heart { width: 100%; height: 100%; overflow: visible; }
+
+.heart-bg { fill: rgba(255,255,255,0.06); }
+.heart-outline { fill: none; stroke-width: 1.2; opacity: 0.9; vector-effect: non-scaling-stroke; }
+
+.heart-liquid { transition: y 0.7s ease; }
+
+/* Ondulação da superfície do líquido — dois recortes da mesma "fita" senoidal,
+   sobrepostos e derivando em velocidades diferentes, pra dar profundidade em
+   vez de uma linha reta simplesmente subindo (efeito "líquido" de verdade). */
+.heart-wave-drift { animation: heartWaveDrift linear infinite; }
+.wave-back { animation-duration: 4.5s; animation-direction: reverse; }
+.wave-front { animation-duration: 2.6s; }
+
+@keyframes heartWaveDrift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-8px); }
+}
+
+.heart-center-value {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 0.62rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none;
+}
+
 .health-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .health-tier-label { font-size: 0.85rem; }
 .health-exact-value { font-size: 0.62rem; color: var(--text-dim, #888); font-weight: normal; }
