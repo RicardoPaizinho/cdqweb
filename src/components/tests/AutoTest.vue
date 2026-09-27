@@ -84,6 +84,7 @@
             <h3>Saúde do Disco (S.M.A.R.T)</h3>
             <p v-if="results.smart.status === 'loading'">Verificando...</p>
             <p v-else>Vida útil: {{ results.smart.details?.health }}% | Temp: {{ results.smart.details?.temp }}°C</p>
+            <p v-if="results.smart.details?.info" class="card-note">ℹ {{ results.smart.details.info }}</p>
           </div>
         </div>
         <button class="btn-action" @click="runCmd('OpenHDSentinel')">SENTINEL</button>
@@ -358,6 +359,14 @@ const runCmd = async (action) => {
   color: #ff8800 !important;
   font-weight: bold;
   font-size: 0.78rem !important;
+}
+
+/* Nota explicativa (não é um alerta — explica por que algo incomum ainda passou) */
+.card-note {
+  color: #4ea8de !important;
+  font-size: 0.72rem !important;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 .btn-action {
