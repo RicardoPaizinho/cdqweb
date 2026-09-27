@@ -2,7 +2,10 @@
   <div class="diag-container">
     <header class="diag-header">
       <div class="header-content">
-        <h1>SISTEMA DE CHECK-UP AUTOMÁTICO</h1>
+        <div class="title-row">
+          <h1>SISTEMA DE CHECK-UP AUTOMÁTICO</h1>
+          <button class="btn-back" @click="goBack">VOLTAR</button>
+        </div>
         <p>Monitoramento de integridade de hardware e software</p>
       </div>
       <div class="header-status" :class="{ 'all-ok': isAllSystemOk }">
@@ -21,6 +24,7 @@
             <p v-else>
               {{ results.drivers.status === 'check' ? 'Drivers OK' : `Erro em ${results.drivers.details?.errorCount || 0} disp.` }}
             </p>
+            <p v-if="hasGenericVideoDriver" class="card-warning">⚠ Vídeo com driver genérico — instale o driver do fabricante</p>
           </div>
         </div>
         <button class="btn-action" @click="runCmd('OpenDevMgmt')">ABRIR</button>
@@ -51,15 +55,26 @@
         <button class="btn-action" @click="runCmd('OpenDiskMgmt')">DISCOS</button>
       </div>
 
-      <div class="diag-card" :class="statusClass(results.activation.status)">
+      <div class="diag-card" :class="statusClass(activationStatus)">
         <div class="card-main">
           <div class="card-icon">🔑</div>
           <div class="card-info">
             <h3>Licença Windows</h3>
-            <p>{{ results.activation.status === 'check' ? 'Ativado' : 'Não Ativado' }}</p>
+            <p v-if="licenseOverride">Não Ativado — uso Linux (ignorado)</p>
+            <p v-else>{{ results.activation.status === 'check' ? 'Ativado' : 'Não Ativado' }}</p>
           </div>
         </div>
-        <button class="btn-action" @click="runCmd('OpenActivationSettings')">LICENÇA</button>
+        <div class="card-actions">
+          <button class="btn-action" @click="runCmd('OpenActivationSettings')">LICENÇA</button>
+          <button
+            v-if="results.activation.status !== 'check' && !licenseOverride"
+            class="btn-action btn-linux"
+            title="Windows é só para teste — o equipamento sai com Linux e não precisa de ativação"
+            @click="markLinuxOverride"
+          >
+            LINUX
+          </button>
+        </div>
       </div>
 
       <div class="diag-card" :class="statusClass(results.smart.status)">
@@ -106,14 +121,55 @@ const results = ref({
   smart: { status: 'loading', details: {} }
 });
 
+// Ativação do Windows não é sempre um requisito real: muitos equipamentos são
+// testados com Windows só pra rodar os diagnósticos e saem de fábrica com Linux
+// (sem precisar de licença nenhuma). O botão LINUX no card deixa o técnico
+// sinalizar isso manualmente — vira PASS sem exigir ativação de verdade.
+const licenseOverride = ref(false);
+
+const activationStatus = computed(() => licenseOverride.value ? 'check' : results.value.activation.status);
+
+// Detecta a entrada sintética que o backend adiciona quando a placa de vídeo
+// está usando o "Microsoft Basic Display Adapter" em vez do driver do
+// fabricante (ver CheckDrivers() em AutoTests.cs) — pra dar um aviso mais
+// específico do que só o "Erro em N disp." genérico.
+const hasGenericVideoDriver = computed(() => {
+  return (results.value.drivers.details?.devices || []).some((d) => d.code === 'GENERIC_VIDEO_DRIVER');
+});
+
 const isAllSystemOk = computed(() => {
-  return Object.values(results.value).every((r) => r.status === 'check');
+  return Object.entries(results.value).every(([key, r]) => {
+    if (key === 'activation' && licenseOverride.value) return true;
+    return r.status === 'check';
+  });
 });
 
 const emit = defineEmits(['test-cancelled']);
 
+const goBack = () => emit('test-cancelled');
+
+// O teste automático não tem botão manual de PASS/FAIL — assim que os
+// resultados chegam (ou são reexecutados, ou a licença é ignorada via LINUX),
+// já reporta pro relatório final: PASS se todos os itens estiverem OK, FAIL se
+// qualquer um falhar. Chamamos saveResult() direto (em vez de emitir
+// "test-completed") pra não fechar a tela — o técnico continua podendo ver/
+// corrigir os itens com os botões de ação antes de sair.
+const reportResult = () => {
+  globalState.saveResult('auto', isAllSystemOk.value ? 'PASS' : 'FAIL');
+};
+
+const markLinuxOverride = () => {
+  licenseOverride.value = true;
+  reportResult();
+};
+
 const applyData = (data) => {
   if (!data || data.error) return;
+
+  // Cada nova rodada de diagnóstico começa neutra — se a licença ainda não
+  // estiver ativada, o técnico decide de novo se quer ignorar (LINUX) ou não.
+  licenseOverride.value = false;
+
   results.value = {
     drivers: data.drivers ?? { status: 'alert', details: {} },
     bitlocker: data.bitlocker ?? { status: 'alert', details: {} },
@@ -132,13 +188,7 @@ const applyData = (data) => {
     temp: results.value.smart.details?.temp ?? null
   };
 
-  // O teste automático não tem botão manual de PASS/FAIL — assim que os
-  // resultados chegam (ou são reexecutados), já reporta pro relatório final:
-  // PASS se todos os itens estiverem OK, FAIL se qualquer um falhar.
-  // Chamamos saveResult() direto (em vez de emitir "test-completed") pra não
-  // fechar a tela — o técnico continua podendo ver/corrigir os itens com os
-  // botões de ação antes de sair.
-  globalState.saveResult('auto', isAllSystemOk.value ? 'PASS' : 'FAIL');
+  reportResult();
 };
 
 const fetchResults = async () => {
@@ -219,6 +269,30 @@ const runCmd = async (action) => {
   letter-spacing: 1px;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.btn-back {
+  background: #222;
+  border: 1px solid #444;
+  color: #ccc;
+  cursor: pointer;
+  padding: 6px 16px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border-radius: 4px;
+  transition: 0.2s;
+}
+
+.btn-back:hover {
+  background: #333;
+  border-color: #ff8800;
+  color: #ff8800;
+}
+
 .header-content p {
   color: #888;
   margin: 5px 0 0;
@@ -280,6 +354,12 @@ const runCmd = async (action) => {
 .card-info h3 { font-size: 1rem; margin: 0; color: #eee; }
 .card-info p { font-size: 0.85rem; color: #aaa; margin: 5px 0 0; }
 
+.card-warning {
+  color: #ff8800 !important;
+  font-weight: bold;
+  font-size: 0.78rem !important;
+}
+
 .btn-action {
   margin-top: 20px;
   background: #222;
@@ -297,6 +377,25 @@ const runCmd = async (action) => {
   background: #ff8800;
   color: #000;
   border-color: #ff8800;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.card-actions .btn-action {
+  flex: 1;
+}
+
+.btn-linux {
+  color: #00ff88;
+}
+
+.btn-linux:hover {
+  background: #00ff88;
+  color: #000;
+  border-color: #00ff88;
 }
 
 .debug-footer {

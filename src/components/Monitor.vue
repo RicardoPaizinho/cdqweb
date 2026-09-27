@@ -11,8 +11,10 @@
               <span>MAX: {{ cpuMax }}°</span>
             </div>
           </div>
+          <div class="card-model" :title="cpuModel">{{ cpuModel || '—' }}</div>
           <div class="value-row">
             <span class="value">{{ cpuTemp }}°C</span>
+            <span class="value-clock" v-if="cpuClockGHz != null">{{ cpuClockGHz.toFixed(2) }} GHz</span>
           </div>
         </div>
       </div>
@@ -27,6 +29,7 @@
               <span>MAX: {{ gpuMax }}°</span>
             </div>
           </div>
+          <div class="card-model" v-if="gpuModel" :title="gpuModel">{{ gpuModel }}</div>
           <div class="value-row">
             <span class="value">{{ gpuTemp }}°C</span>
           </div>
@@ -43,6 +46,7 @@
               <span>MAX: {{ storageMax }}°</span>
             </div>
           </div>
+          <div class="card-model" :title="storageModel">{{ storageModel || '—' }}</div>
           <div class="value-row">
             <span class="value">{{ storageTemp }}°C</span>
           </div>
@@ -88,6 +92,15 @@ const POLL_INTERVAL_MS = 2000;
 const cpuTemp = ref(0), cpuMin = ref(100), cpuMax = ref(0);
 const gpuTemp = ref(0), gpuMin = ref(100), gpuMax = ref(0);
 const storageTemp = ref(0), storageMin = ref(100), storageMax = ref(0);
+
+// Nomes exibidos nos cards — CPU/GPU vêm de /api/pc-info (dados estáticos, só
+// precisa buscar uma vez). O nome do disco vem do /api/performance porque é o
+// mesmo hardware já identificado pelo LibreHardwareMonitor pra ler storageTemp
+// (evita depender de outra fonte que possa apontar pra um disco diferente).
+const cpuModel = ref('');
+const gpuModel = ref('');
+const storageModel = ref('');
+const cpuClockGHz = ref(null);
 
 let pollTimer = null;
 
@@ -192,6 +205,7 @@ async function fetchPerformance() {
     cpuTemp.value = Math.round(r.cpuTemp || 0);
     gpuTemp.value = Math.round(r.gpuTemp || 0);
     storageTemp.value = Math.round(r.storageTemp || 0);
+    storageModel.value = r.storageModel || '';
 
     trackMinMax(cpuMin, cpuMax, cpuTemp.value);
     trackMinMax(gpuMin, gpuMax, gpuTemp.value);
@@ -210,9 +224,47 @@ async function fetchPerformance() {
   }
 }
 
+// Clock atual (GHz) muda a todo momento por causa do turbo boost, então entra
+// no mesmo polling da temperatura — vem de /api/cpu-info porque precisa do
+// PawnIO (sensor SensorType.Clock), diferente do resto do card que já vinha
+// de /api/performance.
+async function fetchCpuClock() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/cpu-info`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    cpuClockGHz.value = typeof data.clockAtualGHz === 'number' ? data.clockAtualGHz : null;
+  } catch (err) {
+    console.error('Erro ao buscar clock da CPU:', err);
+  }
+}
+
+// Nomes de CPU/GPU não mudam em runtime — busca uma vez só, sem entrar no polling.
+async function fetchStaticNames() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pc-info`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    cpuModel.value = (data.processador_Name || '').trim();
+    // placaVideo é uma lista (DXGI pode enumerar mais de uma GPU); mostramos a
+    // primeira, que já vem como preferida (GpuPreference.HighPerformance).
+    gpuModel.value = Array.isArray(data.placaVideo) && data.placaVideo.length > 0
+      ? data.placaVideo[0]
+      : '';
+  } catch (err) {
+    console.error('Erro ao buscar informações estáticas do PC:', err);
+  }
+}
+
 onMounted(() => {
   fetchPerformance();
-  pollTimer = setInterval(fetchPerformance, POLL_INTERVAL_MS);
+  fetchCpuClock();
+  fetchStaticNames();
+  pollTimer = setInterval(() => {
+    fetchPerformance();
+    fetchCpuClock();
+  }, POLL_INTERVAL_MS);
 });
 
 onUnmounted(() => {
@@ -249,6 +301,12 @@ onUnmounted(() => {
 .neon-card-gpu:hover { border-color: #00d2ff; box-shadow: 0 0 20px rgba(0, 210, 255, 0.2); }
 .neon-card-ssd:hover { border-color: #ffca28; box-shadow: 0 0 20px rgba(255, 202, 40, 0.2); }
 
+.card-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
 .info label {
   font-size: 0.6rem;
   color: #666;
@@ -257,11 +315,48 @@ onUnmounted(() => {
   letter-spacing: 2px;
 }
 
+.stat-min-max {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-min-max span {
+  font-size: 0.65rem;
+  color: #555;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.card-model {
+  font-size: 0.9rem;
+  color: #ccc;
+  font-weight: 500;
+  margin-top: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
 .info .value {
-  font-size: 2.2rem;
+  font-size: 2.1rem;
   color: #fff;
   font-family: 'Orbitron', sans-serif;
   text-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.value-clock {
+  font-size: 1.1rem;
+  color: #ff4b2b;
+  font-family: 'Orbitron', sans-serif;
+  opacity: 0.9;
 }
 
 /* Seção do Gráfico */

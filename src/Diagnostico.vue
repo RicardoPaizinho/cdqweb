@@ -66,6 +66,10 @@ const fabricante = ref(globalState.t('status.waiting'));
 const processador_Name = ref('Carregando...');
 const processador_ClockSpeed = ref('...');
 const processador_MaxClockSpeed = ref('...');
+// Pico de clock realmente observado (via LibreHardwareMonitor/PawnIO), atualizado
+// junto com a performance — diferente do MaxClockSpeed acima (nominal, fixo pela
+// WMI, é sempre o mesmo número porque é só a especificação, não uma medição).
+const processador_ClockMaximoCapturado = ref(null);
 const processador_NumberOfCores = ref('...');
 const processador_NumberOfLogicalProcessors = ref('...');
 const processador_SerialNumber = ref('...');
@@ -104,8 +108,14 @@ function updatePCInfo(data) {
   serialNumber.value = String(data.serialNumber || '');
   modelName.value = String(data.model || '');
   processador_Name.value = String(data.processador_Name || '');
-  processador_ClockSpeed.value = String(data.processador_ClockSpeed || '');
-  processador_MaxClockSpeed.value = String(data.processador_MaxClockSpeed || '');
+
+  // Win32_Processor reporta ClockSpeed/MaxClockSpeed em MHz — faltava dividir por
+  // 1000 antes de exibir como GHz (mostrava "2400GHz" em vez de "2.40GHz").
+  const clockMhz = Number(data.processador_ClockSpeed);
+  processador_ClockSpeed.value = clockMhz > 0 ? (clockMhz / 1000).toFixed(2) : '';
+
+  const maxClockMhz = Number(data.processador_MaxClockSpeed);
+  processador_MaxClockSpeed.value = maxClockMhz > 0 ? (maxClockMhz / 1000).toFixed(2) : '';
   processador_NumberOfCores.value = String(data.processador_NumberOfCores || '');
   processador_NumberOfLogicalProcessors.value = String(data.processador_NumberOfLogicalProcessors || '');
   processador_SerialNumber.value = String(data.processador_SerialNumber || '');
@@ -160,6 +170,20 @@ async function fetchPerformanceData() {
     }
   } catch (err) {
     console.error("Erro ao buscar métricas de performance:", err);
+  }
+}
+
+// Pico de clock capturado pelo LibreHardwareMonitor (precisa do PawnIO — ver
+// PawnIoBootstrap.cs no backend). Cresce ao longo da sessão conforme o turbo
+// boost é observado; fica null se o driver não estiver disponível, e nesse
+// caso o template cai de volta pro MaxClockSpeed nominal da WMI.
+async function fetchCpuClockInfo() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/cpu-info`);
+    const data = await response.json();
+    processador_ClockMaximoCapturado.value = typeof data.clockMaximoGHz === 'number' ? data.clockMaximoGHz : null;
+  } catch (err) {
+    console.error('Erro ao buscar clock máximo capturado da CPU:', err);
   }
 }
 
@@ -248,7 +272,11 @@ onMounted(() => {
   fetchPCInfo();
 
   // 2. Cria o looping para atualizar o monitor de desempenho (a cada 2 segundos)
-  performanceInterval = setInterval(fetchPerformanceData, 2000);
+  fetchCpuClockInfo();
+  performanceInterval = setInterval(() => {
+    fetchPerformanceData();
+    fetchCpuClockInfo();
+  }, 2000);
 
   // 3. Cria o looping rápido para ler eventos de tecla física do Windows (a cada 150ms)
   keyboardInterval = setInterval(fetchKeyboardEvents, 150);
@@ -349,7 +377,8 @@ window.addEventListener('progress-style-changed', (event) => {
         <p>THREADS: {{ processador_NumberOfLogicalProcessors }}</p>
         <p>CLOCK: {{ processador_ClockSpeed }}GHz</p>
          <p>Serial: {{ processador_SerialNumber }}</p>
-        <p>MaxClock: {{ processador_MaxClockSpeed }}GHz</p>
+        <p v-if="processador_ClockMaximoCapturado != null">MaxClock: {{ processador_ClockMaximoCapturado.toFixed(2) }}GHz </p>
+        <p v-else>MaxClock: {{ processador_MaxClockSpeed }}GHz (nominal)</p>
        
       </div>
     </div>
