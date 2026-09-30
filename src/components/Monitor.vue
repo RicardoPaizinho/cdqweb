@@ -65,14 +65,14 @@
       </header>
 
       <div class="chart-wrapper">
-        <Line :data="chartData" :options="chartOptions" />
+        <Line ref="chartRef" :data="chartData" :options="chartOptions" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, shallowReactive } from 'vue';
+import { ref, onMounted, onUnmounted, shallowReactive, nextTick } from 'vue';
 import { globalState } from '@/store.js';
 import { Line } from 'vue-chartjs';
 import 'chartjs-adapter-date-fns';
@@ -101,6 +101,7 @@ const cpuModel = ref('');
 const gpuModel = ref('');
 const storageModel = ref('');
 const cpuClockGHz = ref(null);
+const chartRef = ref(null);
 
 let pollTimer = null;
 
@@ -179,7 +180,12 @@ const chartOptions = {
     },
     x: {
       type: 'time',
-      time: { unit: 'second', displayFormats: { second: 'HH:mm:ss' } },
+      // Sem "unit" fixo: o Chart.js escolhe a granularidade sozinho conforme o
+      // período visível cresce (segundos no início, minutos/horas depois) — com
+      // "unit: 'second'" fixo, o eixo ficava preso em segundos pra sempre, o que
+      // não fazia diferença visual só porque os ticks estão escondidos, mas
+      // atrapalhava o tooltip conforme a janela crescia.
+      time: { displayFormats: { second: 'HH:mm:ss', minute: 'HH:mm', hour: 'HH:mm' } },
       grid: { display: false },
       ticks: { display: false } // Limpa o visual
     }
@@ -211,14 +217,27 @@ async function fetchPerformance() {
     trackMinMax(gpuMin, gpuMax, gpuTemp.value);
     trackMinMax(storageMin, storageMax, storageTemp.value);
 
-    // Atualiza Gráfico
+    // Atualiza Gráfico — sem limite de pontos: a janela vai se expandindo
+    // conforme o tempo passa (era limitado a 40 pontos/80s antes, "rolando" e
+    // descartando o início; agora mantém a sessão inteira, e o eixo de tempo
+    // ajusta a granularidade sozinho conforme a faixa cresce).
     const updates = [cpuTemp.value, gpuTemp.value, storageTemp.value];
     chartData.datasets.forEach((dataset, i) => {
       dataset.data.push({ x: now, y: updates[i] });
-      if (dataset.data.length > 40) dataset.data.shift();
     });
 
     chartData.datasets = [...chartData.datasets];
+
+    // Força o Chart.js a remedir/redesenhar a cada leitura — o watcher
+    // automático do vue-chartjs às vezes não repinta sozinho quando o gráfico
+    // fica escondido (aba "Monitor" não ativa) e volta a ficar visível depois,
+    // dando a impressão de que "trava" até sair e voltar da página.
+    await nextTick();
+    const chart = chartRef.value?.chart;
+    if (chart) {
+      chart.resize();
+      chart.update('none');
+    }
   } catch (err) {
     console.error('Erro ao buscar dados de performance:', err);
   }

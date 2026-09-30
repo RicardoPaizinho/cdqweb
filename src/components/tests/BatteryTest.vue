@@ -194,81 +194,19 @@
       <div class="chart-section card-glass" :class="{ stale: !!connectionError }">
         <div class="chart-header">
           <div class="chart-title-group">
-            <span class="tech-font chart-main-title">HISTÓRICO E PROJEÇÃO TEMPORAL</span>
-            <span class="tech-font chart-subtext" v-if="isCharging && timeToFullMinutes">
+            <span class="tech-font chart-main-title">HISTÓRICO E PROJEÇÃO DE CARGA</span>
+            <span class="tech-font chart-subtext" v-if="isCharging && timeToFullMinutes != null">
               ESTIMATIVA DE CARGA COMPLETA: ~{{ timeToFullMinutes }} MIN
             </span>
+            <span class="tech-font chart-subtext" v-else-if="isDischarging && timeToEmptyMinutes != null">
+              ESTIMATIVA DE DESCARGA TOTAL: ~{{ timeToEmptyMinutes }} MIN
+            </span>
           </div>
-          <span class="tech-font chart-points-count">{{ historyData.length }} PONTOS</span>
+          <span class="tech-font chart-points-count">{{ chartData.datasets[0].data.length }} PONTOS</span>
         </div>
 
-        <div class="svg-container">
-          <svg viewBox="0 0 500 280" preserveAspectRatio="none" class="battery-chart">
-            <defs>
-              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--accent, #00ff41)" stop-opacity="0.4" />
-                <stop offset="100%" stop-color="var(--accent, #00ff41)" stop-opacity="0.0" />
-              </linearGradient>
-              <linearGradient id="projectedGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--accent, #00ff41)" stop-opacity="0.15" />
-                <stop offset="100%" stop-color="var(--accent, #00ff41)" stop-opacity="0.0" />
-              </linearGradient>
-            </defs>
-
-            <!-- Grade Horizontal de Porcentagem (100% até 0%) -->
-            <g class="y-grid">
-              <!-- 100% -->
-              <line x1="0" y1="20" x2="500" y2="20" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4" />
-              <text x="5" y="16" fill="rgba(255,255,255,0.4)" font-size="9" class="tech-font">100%</text>
-
-              <!-- 75% -->
-              <line x1="0" y1="80" x2="500" y2="80" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-              <text x="5" y="76" fill="rgba(255,255,255,0.3)" font-size="8" class="tech-font">75%</text>
-
-              <!-- 50% -->
-              <line x1="0" y1="140" x2="500" y2="140" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4" />
-              <text x="5" y="136" fill="rgba(255,255,255,0.3)" font-size="8" class="tech-font">50%</text>
-
-              <!-- 25% -->
-              <line x1="0" y1="200" x2="500" y2="200" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-              <text x="5" y="196" fill="rgba(255,255,255,0.3)" font-size="8" class="tech-font">25%</text>
-
-              <!-- 0% -->
-              <line x1="0" y1="260" x2="500" y2="260" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4" />
-              <text x="5" y="256" fill="rgba(255,255,255,0.4)" font-size="9" class="tech-font">0%</text>
-            </g>
-
-            <!-- Grade Vertical de Tempo (a cada 10 min) -->
-            <g class="x-grid">
-              <line x1="83.3" y1="0" x2="83.3" y2="260" stroke="rgba(255,255,255,0.06)" stroke-dasharray="2,4" />
-              <text x="83.3" y="274" fill="rgba(255,255,255,0.3)" font-size="8" text-anchor="middle" class="tech-font">-20m</text>
-
-              <line x1="166.6" y1="0" x2="166.6" y2="260" stroke="rgba(255,255,255,0.06)" stroke-dasharray="2,4" />
-              <text x="166.6" y="274" fill="rgba(255,255,255,0.3)" font-size="8" text-anchor="middle" class="tech-font">-10m</text>
-
-              <!-- Linha Central do Presente -->
-              <line x1="250" y1="0" x2="250" y2="260" stroke="rgba(0, 255, 65, 0.4)" stroke-dasharray="3,3" stroke-width="1.5" />
-              <text x="250" y="274" fill="rgba(0, 255, 65, 0.9)" font-size="9" text-anchor="middle" class="tech-font">AGORA</text>
-
-              <line x1="333.3" y1="0" x2="333.3" y2="260" stroke="rgba(0,255,65,0.15)" stroke-dasharray="2,4" />
-              <text x="333.3" y="274" fill="rgba(0, 255, 65, 0.4)" font-size="8" text-anchor="middle" class="tech-font">+10m</text>
-
-              <line x1="416.6" y1="0" x2="416.6" y2="260" stroke="rgba(0,255,65,0.15)" stroke-dasharray="2,4" />
-              <text x="416.6" y="274" fill="rgba(0, 255, 65, 0.4)" font-size="8" text-anchor="middle" class="tech-font">+20m</text>
-            </g>
-
-            <!-- Preenchimento e Linha do Histórico (curva suavizada, não segmentos retos) -->
-            <path v-if="chartAreaPath" :d="chartAreaPath" fill="url(#chartGradient)" stroke="none" />
-            <path v-if="chartLinePath" :d="chartLinePath" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-
-            <!-- Preenchimento e Linha da Projeção -->
-            <path v-if="projectionAreaPath" :d="projectionAreaPath" fill="url(#projectedGradient)" stroke="none" />
-            <path v-if="projectionLinePath" :d="projectionLinePath" fill="none" stroke="var(--accent, #00ff41)" stroke-width="2" stroke-dasharray="4,4" stroke-opacity="0.8" />
-
-            <!-- Indicador Ponto Pulsante do Presente -->
-            <circle :cx="250" :cy="currentCenterY" r="5" fill="var(--accent, #00ff41)" />
-            <circle :cx="250" :cy="currentCenterY" r="10" fill="none" stroke="var(--accent, #00ff41)" stroke-width="1.5" class="pulse-circle" />
-          </svg>
+        <div class="chart-wrapper">
+          <Line ref="chartRef" :data="chartData" :options="chartOptions" />
         </div>
       </div>
 
@@ -277,14 +215,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, shallowReactive, nextTick } from 'vue';
 import { globalState } from '@/store.js';
+import { Line } from 'vue-chartjs';
+import 'chartjs-adapter-date-fns';
+import {
+  Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, Filler, TimeScale
+} from 'chart.js';
+
+ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, Filler, TimeScale);
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const POLL_INTERVAL_MS = 1500;
-const MAX_HISTORIC_POINTS = 30;
 
 const deviceName = ref('—');
 const manufacturerName = ref('—');
@@ -309,8 +253,8 @@ const batteryDetected = ref(false);
 const hasDetectedCharging = ref(false);
 const hasDetectedDischarging = ref(false);
 
-const historyData = ref([]);
 let pollTimer = null;
+const chartRef = ref(null);
 
 const canPass = computed(() => {
   return batteryDetected.value && hasDetectedCharging.value && hasDetectedDischarging.value;
@@ -358,12 +302,6 @@ function fmt(value, digits = 2) {
 // Situação em que não há bateria física para testar (ex: desktop) — o checklist nunca fecharia sozinho
 const notApplicable = computed(() => !loading.value && !connectionError.value && !batteryDetected.value);
 
-// Mapeia 0% -> Y=260 e 100% -> Y=20 no SVG ampliado
-const currentCenterY = computed(() => {
-  const pct = currentCapacityPercent.value || 0;
-  return 260 - (pct / 100) * 240;
-});
-
 const timeToFullMinutes = computed(() => {
   if (!isCharging.value || !chargeRateW.value || chargeRateW.value <= 0) return null;
   if (!fullChargeCapacityWh.value || !currentCapacityWh.value) return null;
@@ -375,89 +313,113 @@ const timeToFullMinutes = computed(() => {
   return Math.round(hours * 60);
 });
 
-// Converte uma lista de pontos {x,y} numa curva suave (Catmull-Rom -> Bézier),
-// em vez de segmentos retos entre amostras — evita o efeito "serrote" com poucos pontos.
-function smoothPath(points) {
-  if (!points || points.length === 0) return '';
-  if (points.length === 1) return `M ${points[0].x},${points[0].y}`;
-  if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
+// Simétrico ao de cima, pro sentido de descarga — antes só existia a
+// estimativa de carga completa, e a projeção do gráfico era uma curva
+// sintética (sem relação com a taxa real medida) esticada num período fixo de
+// ±20 minutos. Agora as duas usam a taxa real (W) pra saber até quando
+// projetar de verdade, tanto pra carregar quanto pra descarregar.
+const timeToEmptyMinutes = computed(() => {
+  if (!isDischarging.value || !dischargeRateW.value || dischargeRateW.value <= 0) return null;
+  if (!currentCapacityWh.value) return null;
 
-  let d = `M ${points[0].x},${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] || points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] || p2;
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
-  }
-  return d;
+  const hours = currentCapacityWh.value / dischargeRateW.value;
+  return Math.round(hours * 60);
+});
+
+// --- GRÁFICO (Chart.js, mesmo padrão do Monitor.vue) ---------------------
+// O gráfico anterior era SVG e podia usar var(--accent) direto num atributo
+// stroke/fill (CSS resolve isso no DOM). Canvas não funciona assim — precisa
+// de uma cor já resolvida —, por isso lemos o valor real da variável uma vez
+// aqui (mesmo truque do getThemeColor em MicTestGrava.vue).
+function hexToRgb(hex) {
+  const clean = (hex || '').replace('#', '').trim();
+  const normalized = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  const value = parseInt(normalized, 16);
+  if (normalized.length !== 6 || Number.isNaN(value)) return { r: 0, g: 255, b: 65 };
+  return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
 }
 
-// Histórico (X: 0 -> 250)
-const chartHistoryPoints = computed(() => {
-  if (historyData.value.length === 0) {
-    const y = currentCenterY.value;
-    return [{ x: 0, y }, { x: 250, y }];
+const accentHex = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00ff41';
+const accentRgb = hexToRgb(accentHex);
+const accentRgba = (alpha) => `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, ${alpha})`;
+
+// dataset[0] = histórico real (timestamps de verdade, cresce a sessão toda,
+// sem limite de pontos — antes era limitado a 30 e o eixo mostrava rótulos
+// fixos de "-20m/+20m" que não tinham nenhuma relação com o tempo real
+// coberto pelos pontos). dataset[1] = projeção, calculada a partir da taxa de
+// carga/descarga REAL (chargeRateW/dischargeRateW), não mais uma curva
+// sintética — vai de "agora" até o instante estimado de 100%/0%, do jeito que
+// o BatteryMon mostra.
+const chartData = shallowReactive({
+  datasets: [
+    {
+      label: 'Histórico',
+      data: [],
+      borderColor: accentHex,
+      borderWidth: 2.5,
+      tension: 0.35,
+      pointRadius: 0,
+      fill: true,
+      backgroundColor: (context) => {
+        const ctx = context.chart.ctx;
+        const g = ctx.createLinearGradient(0, 0, 0, 260);
+        g.addColorStop(0, accentRgba(0.35));
+        g.addColorStop(1, accentRgba(0));
+        return g;
+      }
+    },
+    {
+      label: 'Projeção',
+      data: [],
+      borderColor: accentRgba(0.7),
+      borderWidth: 2,
+      borderDash: [6, 4],
+      tension: 0,
+      pointRadius: 0,
+      fill: false
+    }
+  ]
+});
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  resizeDelay: 50,
+  scales: {
+    y: {
+      min: 0, max: 100,
+      grid: { color: 'rgba(255, 255, 255, 0.05)' },
+      ticks: { color: 'rgba(255,255,255,0.4)', font: { family: 'Consolas', size: 9 }, callback: (v) => `${v}%` }
+    },
+    x: {
+      type: 'time',
+      // Sem "unit" fixo: o Chart.js escolhe a granularidade sozinho conforme a
+      // sessão cresce (segundos/minutos no início, podendo chegar a horas).
+      time: { displayFormats: { second: 'HH:mm:ss', minute: 'HH:mm', hour: 'HH:mm' } },
+      grid: { color: 'rgba(255, 255, 255, 0.03)' },
+      ticks: { color: 'rgba(255,255,255,0.4)', font: { family: 'Consolas', size: 8 }, maxRotation: 0 }
+    }
+  },
+  plugins: { legend: { display: false } }
+};
+
+// Recalcula a linha pontilhada de projeção a partir do estado atual — sempre
+// parte do ponto "agora" (conectando visualmente com o fim do histórico) até
+// o instante estimado de 100% (carregando) ou 0% (descarregando). Sem
+// carregamento/descarga em andamento, ou sem taxa disponível, fica vazia.
+function updateProjection(now, pct) {
+  const projection = chartData.datasets[1];
+
+  if (isCharging.value && timeToFullMinutes.value != null) {
+    const target = new Date(now.getTime() + timeToFullMinutes.value * 60000);
+    projection.data = [{ x: now, y: pct }, { x: target, y: 100 }];
+  } else if (isDischarging.value && timeToEmptyMinutes.value != null) {
+    const target = new Date(now.getTime() + timeToEmptyMinutes.value * 60000);
+    projection.data = [{ x: now, y: pct }, { x: target, y: 0 }];
+  } else {
+    projection.data = [];
   }
-  const count = historyData.value.length;
-  return historyData.value.map((val, idx) => {
-    const x = count > 1 ? (idx / (count - 1)) * 250 : 250;
-    const y = 260 - (val / 100) * 240;
-    return { x, y };
-  });
-});
-
-const chartLinePath = computed(() => smoothPath(chartHistoryPoints.value));
-
-const chartAreaPath = computed(() => {
-  const pts = chartHistoryPoints.value;
-  if (pts.length === 0) return '';
-  const first = pts[0];
-  const last = pts[pts.length - 1];
-  return `${smoothPath(pts)} L ${last.x},260 L ${first.x},260 Z`;
-});
-
-// Projeção (X: 250 -> 500) — mais passos = curva mais fiel à interpolação, não só mais reta
-const projectionPointsArray = computed(() => {
-  const currentPct = currentCapacityPercent.value || 0;
-
-  let targetPct = currentPct;
-  if (isCharging.value) {
-    targetPct = 100;
-  } else if (isDischarging.value) {
-    targetPct = 0;
-  }
-
-  const points = [];
-  const steps = 24;
-
-  for (let i = 0; i <= steps; i++) {
-    const progress = i / steps;
-    const x = 250 + progress * 250;
-
-    const factor = isCharging.value ? Math.sin((progress * Math.PI) / 2) : progress;
-    const interpolatedPct = currentPct + (targetPct - currentPct) * factor;
-    const y = 260 - (interpolatedPct / 100) * 240;
-
-    points.push({ x, y });
-  }
-
-  return points;
-});
-
-const projectionLinePath = computed(() => smoothPath(projectionPointsArray.value));
-
-const projectionAreaPath = computed(() => {
-  const pts = projectionPointsArray.value;
-  if (pts.length === 0) return '';
-  const first = pts[0];
-  const last = pts[pts.length - 1];
-  return `${smoothPath(pts)} L ${last.x},260 L ${first.x},260 Z`;
-});
+}
 
 async function fetchBatteryData() {
   try {
@@ -499,9 +461,20 @@ async function fetchBatteryData() {
     if (isCharging.value) hasDetectedCharging.value = true;
     if (isDischarging.value) hasDetectedDischarging.value = true;
 
-    historyData.value.push(pct);
-    if (historyData.value.length > MAX_HISTORIC_POINTS) {
-      historyData.value.shift();
+    // Histórico sem limite de pontos — cresce a sessão toda (era limitado a 30
+    // pontos/45s antes, "rolando" e perdendo o início do teste).
+    const now = new Date();
+    chartData.datasets[0].data.push({ x: now, y: pct });
+    updateProjection(now, pct);
+    chartData.datasets = [...chartData.datasets];
+
+    // Força o Chart.js a remedir/redesenhar — o watcher automático do
+    // vue-chartjs às vezes não repinta sozinho (mesmo ajuste do Monitor.vue).
+    await nextTick();
+    const chart = chartRef.value?.chart;
+    if (chart) {
+      chart.resize();
+      chart.update('none');
     }
 
   } catch (err) {
@@ -707,16 +680,12 @@ const goBack = () => emit('test-cancelled');
 .chart-subtext { font-size: 0.65rem; color: rgba(255,255,255,0.7); }
 .chart-points-count { font-size: 0.65rem; color: var(--text-dim, #777); }
 
-.svg-container {
-  width: 100%;
-  flex-grow: 1;
+.chart-wrapper {
+  position: relative; /* obrigatório para o Chart.js responsivo */
+  flex: 1;
   min-height: 250px;
+  width: 100%;
 }
-.battery-chart { width: 100%; height: 100%; }
-
-/* Animação do Ponto Pulsante */
-.pulse-circle { animation: pulseAnim 1.8s infinite ease-out; transform-origin: center; }
-@keyframes pulseAnim { 0% { r: 5px; opacity: 1; } 100% { r: 16px; opacity: 0; } }
 
 .mini-label { font-size: 0.62rem; color: var(--text-dim, #777); }
 .text-warning { color: #f1c40f; }
