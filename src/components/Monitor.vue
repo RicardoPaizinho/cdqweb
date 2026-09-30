@@ -32,6 +32,7 @@
           <div class="card-model" v-if="gpuModel" :title="gpuModel">{{ gpuModel }}</div>
           <div class="value-row">
             <span class="value">{{ gpuTemp }}°C</span>
+            <span class="value-usage" v-if="gpuUsage != null">{{ gpuUsage }}%</span>
           </div>
         </div>
       </div>
@@ -101,6 +102,7 @@ const cpuModel = ref('');
 const gpuModel = ref('');
 const storageModel = ref('');
 const cpuClockGHz = ref(null);
+const gpuUsage = ref(null);
 const chartRef = ref(null);
 
 let pollTimer = null;
@@ -210,6 +212,7 @@ async function fetchPerformance() {
 
     cpuTemp.value = Math.round(r.cpuTemp || 0);
     gpuTemp.value = Math.round(r.gpuTemp || 0);
+    gpuUsage.value = typeof r.gpuUsage === 'number' ? Math.round(r.gpuUsage) : null;
     storageTemp.value = Math.round(r.storageTemp || 0);
     storageModel.value = r.storageModel || '';
 
@@ -374,6 +377,13 @@ onUnmounted(() => {
 .value-clock {
   font-size: 1.1rem;
   color: #ff4b2b;
+  font-family: 'Orbitron', sans-serif;
+  opacity: 0.9;
+}
+
+.value-usage {
+  font-size: 1.1rem;
+  color: #00d2ff;
   font-family: 'Orbitron', sans-serif;
   opacity: 0.9;
 }
