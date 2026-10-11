@@ -1,7 +1,7 @@
 <script setup>
 // App.vue — Casca principal da aplicação.
 // Responsável por: title bar da janela, tela de login (servidor Node em
-// app.cdqweb.com.br) e a barra de navegação entre as duas janelas
+// api.cdqweb.com.br) e a barra de navegação entre as duas janelas
 // principais: Diagnóstico (Diagnostico.vue) e Dashboard (Dashboard.vue).
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import StepsProgress from '@/components/StepsProgress.vue';

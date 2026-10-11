@@ -37,7 +37,11 @@ export const globalState = reactive({
   isAuthenticated: false,
   authLoading: false,
   authError: '',
-  user: null, // { idUsuario, tipo, nome, local, tema }
+  user: null, // { idUsuario, tipo, nome, local, tema, token }
+
+  get isAdm() {
+    return String(this.user?.tipo || '').trim().toUpperCase() === 'ADM';
+  },
 
   // --- DADOS DO EQUIPAMENTO (lidos pelo agente C# via /api/pc-info) ---
   // Preenchido pelo Diagnostico.vue assim que busca os dados do PC — fica
@@ -65,7 +69,9 @@ export const globalState = reactive({
   restoreSession() {
     try {
       const savedUser = localStorage.getItem('cdqweb-user');
-      if (savedUser) {
+      // Sessões salvas antes do token existir não servem mais pras rotas do
+      // Dashboard — nesse caso volta pra tela de login.
+      if (savedUser && JSON.parse(savedUser)?.token) {
         this.user = JSON.parse(savedUser);
         this.isAuthenticated = true;
         const idioma = this.user?.local === 'UY' ? 'es' : 'pt';
@@ -102,7 +108,9 @@ export const globalState = reactive({
         tipo: data.tipo || '',
         nome: data.nomeUsuario || '',
         local: data.local || 'BR',
-        tema: data.tema || null
+        tema: data.tema || null,
+        // JWT das rotas /api/dashboard/* (o servidor tira nome/tipo/região dele)
+        token: data.token || null
       };
 
       // Idioma é selecionado automaticamente a partir do local do usuário

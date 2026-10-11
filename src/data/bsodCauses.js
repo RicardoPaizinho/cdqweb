@@ -1,3 +1,5 @@
+import bsodGuideRaw from './bsodGuide.json';
+
 // Causas prováveis de tela azul, catalogadas pela equipe técnica (fonte: "Tela azul.csv").
 // Chave = código do bugcheck em hexadecimal (comparado por valor numérico, não por string,
 // então "0x1A" e "0x0000001A" batem com a mesma entrada).
@@ -96,4 +98,19 @@ export const BSOD_CAUSES = new Map([
 export function getCauseForCode(code) {
   if (code == null) return null;
   return BSOD_CAUSES.get(code) || null;
+}
+
+// --- GUIA COMPLETO (BSOD-Guide) ---
+// Base complementar com 426 códigos: categoria, gravidade, descrição, passos de
+// solução, comandos e tags. Fonte: BSOD-Guide de Ahmed Arafa
+// (https://github.com/p2nd2/BSOD-Guide, licença MIT), traduzido do árabe para o
+// português. A causa da equipe (acima) continua tendo prioridade no card — o
+// guia entra como descrição e roteiro de solução.
+export const BSOD_GUIDE = new Map(
+  Object.entries(bsodGuideRaw).map(([hex, info]) => [parseInt(hex, 16), info])
+);
+
+export function getGuideForCode(code) {
+  if (code == null) return null;
+  return BSOD_GUIDE.get(code) || null;
 }
