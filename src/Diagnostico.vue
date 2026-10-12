@@ -61,7 +61,9 @@ watch(activeMenu, (newMenu) => {
 // --- DADOS DO SISTEMA (REFS) ---
 const serialNumber = ref(globalState.t('status.waiting')); 
 const modelName = ref(globalState.t('status.waiting'));
-const orderNumber = ref('ORD-000000');
+// O.S. do último relatório deste equipamento no banco remoto (buscado pelo
+// serial em globalState.buscarRegistroEquipamento, chamado no updatePCInfo).
+const registroEquipamento = computed(() => globalState.registroEquipamento);
 const fabricante = ref(globalState.t('status.waiting'));
 const processador_Name = ref('Carregando...');
 const processador_ClockSpeed = ref('...');
@@ -131,7 +133,7 @@ function updatePCInfo(data) {
   card_placaVideo.value = Array.isArray(data.placaVideo) ? [...data.placaVideo] : [data.placaVideo];
   card_sistema.value = String(data.system || '');
   card_lcd.value = String(data.lcd || '');
-  orderNumber.value = "os-123456";
+  globalState.buscarRegistroEquipamento(data.serialNumber);
   fabricante.value = String(data.systemFamily || '');
 }
 
@@ -317,7 +319,22 @@ window.addEventListener('progress-style-changed', (event) => {
       <div class="topbar-content">
         <div class="info-item"><span class="info-label">{{ fabricante }}</span></div>
         <div class="info-item"><span class="info-label">S/N:</span><span class="info-value">{{ serialNumber }}</span></div>
-        <div class="info-item"><span class="info-label">O.S:</span><span class="info-value">{{ orderNumber }}</span></div>
+        <div class="info-item">
+          <span class="info-label">O.S:</span>
+          <span v-if="registroEquipamento.estado === 'found'" class="info-value"
+                :title="`Último teste: ${registroEquipamento.data || '—'} por ${registroEquipamento.tecnico || '—'}`">
+            {{ registroEquipamento.os }}
+            <span class="os-status" :class="{
+              pass: registroEquipamento.status === 'PASS',
+              fail: registroEquipamento.status === 'FAIL'
+            }">{{ registroEquipamento.status === 'OUTRO' ? registroEquipamento.statusOriginal : registroEquipamento.status }}</span>
+          </span>
+          <span v-else-if="registroEquipamento.estado === 'loading'" class="info-value">...</span>
+          <span v-else-if="registroEquipamento.estado === 'error'" class="info-value os-erro"
+                title="Não foi possível consultar o banco de dados">sem conexão</span>
+          <span v-else class="info-value"
+                title="Nenhum relatório salvo para este serial"><span class="os-status todo">ToDo</span></span>
+        </div>
       </div>
     </header>
 
@@ -579,6 +596,21 @@ window.addEventListener('progress-style-changed', (event) => {
   border-radius: 4px;
   border: 1px solid #333;
 }
+
+/* Status do último teste no banco, ao lado da O.S. */
+.os-status {
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  color: var(--text-dim);
+  background: var(--bg-hover);
+}
+.os-status.pass { color: var(--status-pass); background: var(--status-pass-glow); }
+.os-status.fail { color: var(--status-fail); background: var(--status-fail-glow); }
+.os-status.todo { margin-left: 0; color: var(--accent); background: var(--accent-glow); }
+.os-erro { color: var(--text-dim); font-style: italic; }
 
 /* 4. LAYOUT PRINCIPAL & SIDEBARS */
 .main-layout {

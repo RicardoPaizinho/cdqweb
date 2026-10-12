@@ -88,8 +88,8 @@
           <div 
             class="card-glass network-card" 
             :class="{ 
-              'border-ok': data.LanOk, 
-              'border-fail': data.LanPresent && !data.LanOk, 
+              'border-ok': lanOk, 
+              'border-fail': data.LanPresent && !lanOk, 
               'border-muted': !data.LanPresent 
             }"
           >
@@ -100,9 +100,9 @@
               </div>
               <span 
                 class="tech-font badge-status" 
-                :class="data.LanOk ? 'badge-pass' : (data.LanPresent ? 'badge-fail' : 'badge-muted')"
+                :class="lanOk ? 'badge-pass' : (data.LanPresent ? 'badge-fail' : 'badge-muted')"
               >
-                {{ data.LanPresent ? (data.LanOk ? 'CABO CONECTADO' : 'DESCONECTADO') : 'NÃO DETECTADO' }}
+                {{ data.LanPresent ? (data.LanOk ? 'CABO CONECTADO' : (lanOk ? 'CABO DETECTADO' : 'DESCONECTADO')) : 'NÃO DETECTADO' }}
               </span>
             </div>
 
@@ -111,8 +111,11 @@
                 {{ data.LanPresent ? (data.LanDesc || 'Adaptador Ethernet') : 'Nenhum adaptador LAN detectado' }}
               </p>
 
-              <p v-if="data.LanPresent && !data.LanOk" class="status-hint tech-font text-fail">
+              <p v-if="data.LanPresent && !lanOk" class="status-hint tech-font text-fail">
                 * Conexão de cabo obrigatória para aprovar no teste.
+              </p>
+              <p v-else-if="lanOk && !data.LanOk" class="status-hint tech-font text-dim">
+                Cabo já detectado neste teste — pode remover.
               </p>
             </div>
           </div>
@@ -169,13 +172,19 @@ const POLL_INTERVAL_MS = 3000;
 const data = ref(null);
 const loading = ref(true);
 const connectionError = ref('');
+const lanJaDetectada = ref(false);
 let timer = null;
+
+const lanOk = computed(() => !!data.value?.LanOk || lanJaDetectada.value);
 
 const updateData = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/network`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data.value = await response.json();
+    // Depois que o cabo foi detectado uma vez, a LAN fica aprovada mesmo se o
+    // técnico tirar o cabo em seguida (não precisa ficar conectado até o fim).
+    if (data.value?.LanOk) lanJaDetectada.value = true;
     connectionError.value = '';
   } catch (err) {
     connectionError.value = 'Não foi possível conectar ao agente local (porta 5000). Verifique se o HardwareTestApp está em execução.';
@@ -196,9 +205,9 @@ onUnmounted(() => {
 
 const canPass = computed(() => {
   if (!data.value) return false;
-  const lanOk = !data.value.LanPresent || data.value.LanOk;
+  const lanAprovada = !data.value.LanPresent || lanOk.value;
   const wifiOk = !data.value.WifiPresent || data.value.WifiOk;
-  return lanOk && wifiOk;
+  return lanAprovada && wifiOk;
 });
 
 const handleResult = (status) => emit('test-completed', status);

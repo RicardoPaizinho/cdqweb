@@ -8,6 +8,7 @@ const LOGIN_API_URL = `${API_BASE}/auth/login`;
 const TEMA_API_URL = `${API_BASE}/usuario/tema`;
 const RELATORIO_CHECK_URL = `${API_BASE}/relatorios/check`;
 const RELATORIO_API_URL = `${API_BASE}/relatorios`;
+const RELATORIO_POR_SERIAL_URL = `${API_BASE}/relatorios/por-serial`;
 
 // --- CONFIGURAÇÃO DO AGENTE LOCAL (HardwareTestApp, porta 5000) ---
 // Usado só pra persistir/recuperar o progresso dos testes em disco (ver
@@ -57,6 +58,12 @@ export const globalState = reactive({
   // Preenchido pelo BatteryTest.vue ao finalizar o teste — carga (%) e
   // saúde/vida útil (%) da bateria. Usado pra montar o campo "testeBateria".
   batteryTestInfo: null,
+
+  // Último relatório deste equipamento no banco remoto, buscado pelo serial
+  // (coluna serialNumber) assim que o Diagnostico.vue carrega o pcInfo.
+  // estado: 'idle' | 'loading' | 'found' | 'notfound' | 'error'
+  // Quando 'found': { os, status: 'PASS' | 'FAIL' | 'OUTRO', statusOriginal, tecnico, data }
+  registroEquipamento: { estado: 'idle' },
 
   // --- NAVEGAÇÃO ENTRE JANELAS PRINCIPAIS (Diagnóstico / Dashboard) ---
   activeWindow: 'diagnostico', // 'diagnostico' | 'dashboard'
@@ -153,6 +160,7 @@ export const globalState = reactive({
   logout() {
     this.user = null;
     this.pcInfo = null;
+    this.registroEquipamento = { estado: 'idle' };
     this.isAuthenticated = false;
     this.activeWindow = 'diagnostico';
     localStorage.removeItem('cdqweb-user');
@@ -356,6 +364,16 @@ export const globalState = reactive({
         date: new Date().toLocaleString(locale)
       });
 
+      // O topo do Diagnóstico passa a mostrar a O.S. que acabou de ser salva
+      this.registroEquipamento = {
+        estado: 'found',
+        os: osCDQ,
+        status,
+        statusOriginal: status,
+        tecnico: this.user?.nome || '',
+        data: new Date().toLocaleDateString('pt-BR')
+      };
+
       this.currentOS = '';
       this.reportComments = '';
       this.reportSaved = true;
@@ -366,6 +384,30 @@ export const globalState = reactive({
       return false;
     } finally {
       this.savingReport = false;
+    }
+  },
+
+  // Procura o último relatório deste equipamento no banco remoto pelo serial
+  // (o mesmo que vai na coluna serialNumber ao salvar). Seriais "placeholder"
+  // de BIOS não são buscados — bateriam com relatórios de outros notebooks.
+  async buscarRegistroEquipamento(serial) {
+    if (!isUsableSerial(serial) || !this.user?.token) {
+      this.registroEquipamento = { estado: 'notfound' };
+      return;
+    }
+    this.registroEquipamento = { estado: 'loading' };
+    try {
+      const url = `${RELATORIO_POR_SERIAL_URL}?serial=${encodeURIComponent(String(serial).trim())}`;
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${this.user.token}` } });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) throw new Error(data?.message || `HTTP ${response.status}`);
+
+      this.registroEquipamento = data.found
+        ? { estado: 'found', os: data.os, status: data.status, statusOriginal: data.statusOriginal, tecnico: data.tecnico, data: data.data }
+        : { estado: 'notfound' };
+    } catch (err) {
+      console.warn('Não foi possível buscar o registro do equipamento:', err);
+      this.registroEquipamento = { estado: 'error' };
     }
   },
 
