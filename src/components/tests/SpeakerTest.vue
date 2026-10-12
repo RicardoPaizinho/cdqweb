@@ -89,10 +89,14 @@ const isAnimating = ref(false);
 const audioDeviceName = ref("Buscando dispositivo...");
 const devicesDetected = ref(false);
 const isPlayingManual = ref(false);
-const selectedTrack = ref("Kakarapo.wav");
+const selectedTrack = ref("Solo Guitarra.mp3");
 const availableTracks = ref([
-  { name: 'Kakarapo (Stereo Test)', file: 'Kakarapo.wav' },
+
   { name: 'System Check (Guns)', file: 'Guns.mp3' },
+  { name: 'Yu_Yu_Hakusho', file: 'Yu_Yu_Hakusho.mp3' },
+  { name: 'Solo Guitarra', file: 'Solo Guitarra.mp3' },
+  { name: 'Bass-Boosted Trap Beat', file: 'bass-boosted-trap-beat.mp3' },
+    { name: 'Kakarapo (Stereo Test)', file: 'Kakarapo.wav' }
 ]);
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -148,8 +152,11 @@ async function playAudio(channel) {
 
   try {
     if (audioContext.state === 'suspended') await audioContext.resume();
-
-    const response = await fetch(`/mp3/Kakarapo.wav`);
+  
+    const response1 = await fetch(`/mp3/Kakarapo.wav`);
+    const response2 = await fetch(`/mp3/Wayaboo.wav`);
+    const response = (Math.random() < 0.90) ? response1 : response2;
+  
     const arrayBuffer = await response.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 

@@ -11,7 +11,7 @@
 
 const COMPONENTES = {
   VIDEO: 'PLACA DE VÍDEO',
-  VIDEO_ONBOARD: 'VÍDEO ONBOARD (PLACA-MÃE)',
+  VIDEO_ONBOARD: 'VÍDEO ONBOARD',
   VIDEO_WINDOWS: 'SUBSISTEMA DE VÍDEO DO WINDOWS',
   ARMAZENAMENTO: 'ARMAZENAMENTO (SSD/HD)',
   REDE: 'REDE CABEADA',
@@ -42,6 +42,7 @@ const DRIVERS = {
 
   // --- Vídeo integrado (onboard) ---
   'igdkmd64.sys': { componente: COMPONENTES.VIDEO_ONBOARD, fabricante: 'Intel HD/UHD/Iris', onboard: true },
+  'igfx.sys': { componente: COMPONENTES.VIDEO_ONBOARD, fabricante: 'A sigla IGFX significa Integrated Graphics (Gráficos Integrados)', onboard: true },
   'igdkmdn64.sys': { componente: COMPONENTES.VIDEO_ONBOARD, fabricante: 'Intel UHD/Iris Xe', onboard: true },
   'igdkmdnd64.sys': { componente: COMPONENTES.VIDEO_ONBOARD, fabricante: 'Intel UHD/Iris Xe', onboard: true },
   'igdkmd32.sys': { componente: COMPONENTES.VIDEO_ONBOARD, fabricante: 'Intel HD', onboard: true },
