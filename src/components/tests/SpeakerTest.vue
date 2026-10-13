@@ -78,6 +78,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { buscarNomeSaidaAudio } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -211,7 +212,11 @@ async function toggleManualPlay() {
   } catch (err) { stopAllAudio(); }
 }
 
-const handleEnd = (res) => { stopAllAudio(); emit('test-completed', res); };
+// Saída de áudio padrão (ex: "Alto-falantes (Realtek(R) Audio)") pro detalhe no banco
+const nomeSaida = ref(null);
+buscarNomeSaidaAudio().then((nome) => { nomeSaida.value = nome; });
+
+const handleEnd = (res) => { stopAllAudio(); emit('test-completed', res, nomeSaida.value || ''); };
 const goBack = () => { stopAllAudio(); emit('test-cancelled'); };
 
 async function getAudioOutputDevices() {

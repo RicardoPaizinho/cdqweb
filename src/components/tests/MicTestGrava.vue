@@ -57,6 +57,7 @@
 
 <script setup>
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
+import { nomeDaTrilha } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -76,6 +77,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let streamSource = null;
 let activeAudioElement = null; // Para controlar a reprodução atual
+let nomeMicrofone = null; // nome do mic usado, pro detalhe no banco
 
 // Captura as cores do seu theme.css
 const getThemeColor = (varName) => {
@@ -145,6 +147,7 @@ async function startRecording() {
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: { deviceId: selectedMicId.value ? { exact: selectedMicId.value } : undefined } 
     });
+    nomeMicrofone = nomeDaTrilha(stream, 'audio');
     streamSource = audioContext.createMediaStreamSource(stream);
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 64;
@@ -188,7 +191,7 @@ function playRecordedAudio() {
 
 const handleEnd = (result) => {
   stopAll();
-  emit('test-completed', result);
+  emit('test-completed', result, nomeMicrofone || '');
 };
 
 async function getMics() {

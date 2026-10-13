@@ -218,6 +218,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, shallowReactive, nextTick } from 'vue';
 import { globalState } from '@/store.js';
+import { detalheBateria } from '@/utils/detalhesTeste.js';
 import { Line } from 'vue-chartjs';
 import 'chartjs-adapter-date-fns';
 import {
@@ -502,7 +503,16 @@ const endTest = (res) => {
     charge: currentCapacityPercent.value ?? null,
     health: batteryHealthPercent.value ?? null
   };
-  emit('test-completed', res);
+  // "DISPOSITIVO:Primary SÉRIE:54414 FABRICANTE:SMP VIDA:100% CARGA:32,95 Wh PROJETADA (DESIGN):36,48 Wh"
+  const detalhe = batteryDetected.value ? detalheBateria({
+    dispositivo: deviceName.value,
+    serie: serialNumber.value,
+    fabricante: manufacturerName.value,
+    vida: batteryHealthPercent.value,
+    carga: fullChargeCapacityWh.value,
+    projetada: designedCapacityWh.value
+  }) : 'Nenhuma bateria detectada';
+  emit('test-completed', res, detalhe);
 };
 const goBack = () => emit('test-cancelled');
 </script>

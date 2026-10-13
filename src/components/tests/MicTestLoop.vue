@@ -55,6 +55,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { nomeDaTrilha } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -72,6 +73,7 @@ let analyser = null;
 let microphone = null;
 let javascriptNode = null;
 let stream = null;
+let nomeMicrofone = null; // nome do mic usado, pro detalhe no banco
 
 // Só lista nome/id de verdade depois de já termos permissão (o navegador
 // esconde o label dos dispositivos até o primeiro getUserMedia bem-sucedido).
@@ -102,6 +104,7 @@ async function startAudio() {
     };
 
     stream = await navigator.mediaDevices.getUserMedia(constraints);
+    nomeMicrofone = nomeDaTrilha(stream, 'audio');
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     microphone = audioContext.createMediaStreamSource(stream);
@@ -173,7 +176,7 @@ const stop = () => {
   if (audioContext) audioContext.close();
 };
 
-const endTest = (res) => { stop(); emit('test-completed', res); };
+const endTest = (res) => { stop(); emit('test-completed', res, nomeMicrofone || ''); };
 
 onMounted(startAudio);
 onBeforeUnmount(stop);

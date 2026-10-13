@@ -95,15 +95,16 @@ const goBack = () => {
 // Chamamos globalState.saveResult() direto (em vez de emitir 'test-completed',
 // que o TestesView.vue só reconhece como string simples) — era exatamente
 // esse o motivo do resultado do microfone não estar sendo salvo antes.
-const handleModuleResult = (result) => {
+// O 2º argumento (detalhe) é o nome do microfone usado, que vai pro banco.
+const handleModuleResult = (result, detalhe = '') => {
   let isPass = false;
 
   if (result && result.combined) {
-    globalState.saveResult('microfone', result.result);
-    globalState.saveResult('speaker', result.result);
+    globalState.saveResult('microfone', result.result, result.detalheMicrofone);
+    globalState.saveResult('speaker', result.result, result.detalheSpeaker);
     isPass = result.result === 'PASS';
   } else if (result === 'PASS' || result === 'FAIL') {
-    globalState.saveResult('microfone', result);
+    globalState.saveResult('microfone', result, detalhe);
     isPass = result === 'PASS';
   }
 

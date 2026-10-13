@@ -164,6 +164,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { buscarDetalhesAgente, detalheRedes } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -211,7 +212,11 @@ const canPass = computed(() => {
   return lanAprovada && wifiOk;
 });
 
-const handleResult = (status) => emit('test-completed', status);
+// Nome do adaptador Bluetooth (o /api/network não traz) pro detalhe no banco
+const bluetoothAdaptador = ref(null);
+buscarDetalhesAgente().then((d) => { bluetoothAdaptador.value = d?.bluetooth || null; });
+
+const handleResult = (status) => emit('test-completed', status, detalheRedes(data.value, bluetoothAdaptador.value));
 const goBack = () => emit('test-cancelled');
 </script>
 

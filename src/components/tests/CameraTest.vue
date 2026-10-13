@@ -77,6 +77,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { nomeDaTrilha, megapixelsDaCamera } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -174,7 +175,13 @@ const stop = () => {
   videoSettings.value = null;
 };
 
-const endTest = (res) => { stop(); emit('test-completed', res); };
+// "Integrated Webcam - Resolução: 0,92 MP" — lido antes de parar a câmera
+const detalheCamera = () => {
+  const nome = nomeDaTrilha(stream.value, 'video');
+  const mp = megapixelsDaCamera(stream.value);
+  return [nome, mp ? `Resolução: ${mp} MP` : null].filter(Boolean).join(' - ');
+};
+const endTest = (res) => { const detalhe = detalheCamera(); stop(); emit('test-completed', res, detalhe); };
 const goBack = () => { stop(); emit('test-cancelled'); };
 
 watch(selectedCameraId, startStream);

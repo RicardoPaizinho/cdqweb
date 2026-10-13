@@ -92,6 +92,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { nomeDaTrilha, buscarNomeSaidaAudio } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -115,6 +116,9 @@ const notes = [
 let audioCtx = null;
 let analyser = null;
 let stream = null;
+let nomeMicrofone = null; // pro detalhe no banco
+let nomeSaida = null;
+buscarNomeSaidaAudio().then((nome) => { nomeSaida = nome; });
 let animationId = null;
 
 // Só lista nome/id de verdade depois de já termos permissão (o navegador
@@ -140,6 +144,7 @@ async function initAudio() {
         autoGainControl: false
       }
     });
+    nomeMicrofone = nomeDaTrilha(stream, 'audio');
     const source = audioCtx.createMediaStreamSource(stream);
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 4096;
@@ -302,7 +307,12 @@ const formatResult = (val) => {
 // tela entre os dois emits e perder o segundo resultado.
 const endTest = (res) => {
   stopAll();
-  emit('test-completed', { combined: true, result: res === 'PASS' ? 'PASS' : 'FAIL' });
+  emit('test-completed', {
+    combined: true,
+    result: res === 'PASS' ? 'PASS' : 'FAIL',
+    detalheMicrofone: nomeMicrofone || '',
+    detalheSpeaker: nomeSaida || ''
+  });
 };
 
 function stopAll() {

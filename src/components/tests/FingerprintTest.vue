@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { buscarNomeLeitorBiometrico } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -26,8 +27,14 @@ async function openWindowsFingerprintEnrollment() {
   }
 }
 
+// Nome do leitor (classe PnP "Biometric", via agente) pro detalhe no banco
+const nomeLeitor = ref(null);
+buscarNomeLeitorBiometrico().then((nome) => { nomeLeitor.value = nome; });
+
 const finishTest = (status) => {
-  emit('test-completed', status);
+  const resumo = status === 'PASS' ? 'Teste FingerPrint realizado com sucesso' : '';
+  const detalhe = [nomeLeitor.value, resumo].filter(Boolean).join(' : ');
+  emit('test-completed', status, detalhe);
 };
 
 const goBack = () => {

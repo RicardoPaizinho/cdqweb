@@ -78,8 +78,8 @@ const handleKeyUp = (e) => {
 };
 
 const resetTest = () => { testedKeys.value.clear(); historyArray.value = []; };
-const handlePass = () => emit('test-completed', 'PASS');
-const handleFail = () => emit('test-completed', 'FAIL');
+const handlePass = () => emit('test-completed', 'PASS', `Foram testadas: ${testedKeys.value.size} teclas com sucesso`);
+const handleFail = () => emit('test-completed', 'FAIL', `Foram testadas: ${testedKeys.value.size} teclas`);
 const goBack = () => emit('test-cancelled');
 
 onMounted(() => {

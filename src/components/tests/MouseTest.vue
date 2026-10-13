@@ -188,7 +188,7 @@ const onDragStart = (e) => {
 };
 const onDrop = () => { isOver.value = false; checks.drag = true; };
 
-const endTest = (res) => emit('test-completed', res);
+const endTest = (res) => emit('test-completed', res, res === 'PASS' ? 'Teste do Touchpad realizado com sucesso' : '');
 const goBack = () => emit('test-cancelled');
 
 onMounted(() => {

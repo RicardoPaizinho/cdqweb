@@ -76,7 +76,7 @@ onUnmounted(async () => {
 });
 
 const finishTest = (status) => {
-  emit('test-completed', status);
+  emit('test-completed', status, status === 'PASS' ? 'Teste das portas USB realizado com sucesso' : '');
 };
 
 const goBack = () => {

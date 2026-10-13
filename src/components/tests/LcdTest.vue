@@ -70,6 +70,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { buscarDetalhesAgente, detalheLcd } from '@/utils/detalhesTeste.js';
 
 const emit = defineEmits(['test-completed', 'test-cancelled']);
 
@@ -201,7 +202,11 @@ const exitFullscreen = () => {
   isLoopMode.value = false;
 };
 
-const endTest = (result) => emit('test-completed', result);
+// Resolução/frequência/ID do painel lidos pelo agente (pro detalhe no banco)
+const telaAgente = ref(null);
+buscarDetalhesAgente().then((d) => { telaAgente.value = d?.tela || null; });
+
+const endTest = (result) => emit('test-completed', result, detalheLcd(telaAgente.value, realWidth.value, realHeight.value));
 const goBack = () => emit('test-cancelled');
 
 // Escuta eventos de teclado (Setas e ESC)

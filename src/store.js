@@ -166,20 +166,22 @@ export const globalState = reactive({
     localStorage.removeItem('cdqweb-user');
   },
   
+  // "detalhe" = o que o teste conseguiu ler (dispositivo, resolução, teclas...),
+  // salvo no banco como "PASS: <detalhe>" (ver saveFinalReport).
   testResults: {
-    lcd: { label: 'LCD', result: '' },
-    touchpad: { label: 'Touchpad', result: '' },
-    teclado: { label: 'Teclado', result: '' },
-    microfone: { label: 'Mic', result: '' },
-    speaker: { label: 'Audio', result: '' },
-    webcam: { label: 'Webcam', result: '' },
-    redes: { label: 'Network', result: '' },
-    battery: { label: 'Battery', result: '' },
-    joystick: { label: 'Joystick', result: '' },
-    usb: { label: 'USB', result: '' },
-    touchscreen: { label: 'Touchscreen', result: '' },
-    fingerprint: { label: 'Fingerprint', result: '' },
-    auto: { label: 'Auto Diagnóstico', result: '' }
+    lcd: { label: 'LCD', result: '', detalhe: '' },
+    touchpad: { label: 'Touchpad', result: '', detalhe: '' },
+    teclado: { label: 'Teclado', result: '', detalhe: '' },
+    microfone: { label: 'Mic', result: '', detalhe: '' },
+    speaker: { label: 'Audio', result: '', detalhe: '' },
+    webcam: { label: 'Webcam', result: '', detalhe: '' },
+    redes: { label: 'Network', result: '', detalhe: '' },
+    battery: { label: 'Battery', result: '', detalhe: '' },
+    joystick: { label: 'Joystick', result: '', detalhe: '' },
+    usb: { label: 'USB', result: '', detalhe: '' },
+    touchscreen: { label: 'Touchscreen', result: '', detalhe: '' },
+    fingerprint: { label: 'Fingerprint', result: '', detalhe: '' },
+    auto: { label: 'Auto Diagnóstico', result: '', detalhe: '' }
   },
   
   testReports: [],
@@ -225,6 +227,23 @@ export const globalState = reactive({
     battery: 'testeBateria',
     fingerprint: 'testeFingerPrint',
     auto: 'testeAuto'
+  },
+
+  // Tamanho máximo de cada coluna de teste no banco (nchar). O texto é cortado
+  // nesse limite pra o INSERT/UPDATE nunca falhar com "String or binary data
+  // would be truncated". Se as colunas forem aumentadas no banco, atualizar aqui.
+  TEST_FIELD_LIMITS: {
+    testeLcd: 200,
+    testeTouchpad: 100,
+    testeTeclado: 100,
+    testeMicrofone: 300,
+    testeSpeakers: 100,
+    testeUsb: 100,
+    testeCamera: 200,
+    testeRedes: 200,
+    testeBateria: 300,
+    testeFingerPrint: 100,
+    testeAuto: 200
   },
 
   // Monta o bloco de dados de hardware a partir do que o Diagnostico.vue já
@@ -303,9 +322,12 @@ export const globalState = reactive({
       }
 
       // 2) Monta o payload com testes + hardware
+      // Cada campo vai como "PASS: <detalhe>" quando o teste conseguiu ler
+      // alguma informação, ou só "PASS"/"FAIL" quando não.
       const testesPayload = {};
       Object.entries(this.TEST_FIELD_MAP).forEach(([key, campo]) => {
-        testesPayload[campo] = this.testResults[key]?.result || '';
+        const { result = '', detalhe = '' } = this.testResults[key] || {};
+        testesPayload[campo] = result && detalhe ? `${result}: ${detalhe}` : result;
       });
 
       // "testeAuto" leva o resultado PASS/FAIL + o resumo de saúde do disco
@@ -316,21 +338,11 @@ export const globalState = reactive({
         const health = auto.health != null ? `${auto.health}%` : '—';
         const temp = auto.temp != null ? `${auto.temp}°C` : '—';
         testesPayload.testeAuto = `${resultadoAuto} | Disco: ${auto.modelo || '—'} | Saúde: ${health} | Temp: ${temp}`;
-      } else {
-        testesPayload.testeAuto = resultadoAuto;
       }
 
-      // "testeBateria" leva o resultado PASS/FAIL + carga (%) e saúde/vida
-      // útil (%) lidos pelo BatteryTest.vue via WMI (agente C#).
-      const bat = this.batteryTestInfo;
-      const resultadoBateria = this.testResults.battery?.result || '';
-      if (bat && resultadoBateria) {
-        const carga = bat.charge != null ? `${bat.charge}%` : '—';
-        const saude = bat.health != null ? `${bat.health}%` : '—';
-        testesPayload.testeBateria = `${resultadoBateria} | Carga: ${carga} | Saúde: ${saude}`;
-      } else {
-        testesPayload.testeBateria = resultadoBateria;
-      }
+      Object.entries(this.TEST_FIELD_LIMITS).forEach(([campo, limite]) => {
+        if (testesPayload[campo]?.length > limite) testesPayload[campo] = testesPayload[campo].slice(0, limite);
+      });
 
       const payload = {
         local,
@@ -415,6 +427,7 @@ export const globalState = reactive({
   resetAllTests() {
     Object.keys(this.testResults).forEach((key) => {
       this.testResults[key].result = '';
+      this.testResults[key].detalhe = '';
     });
     this.reportSaved = false;
     this.clearProgress();
@@ -466,7 +479,10 @@ export const globalState = reactive({
       if (saved.testResults) {
         Object.keys(this.testResults).forEach((key) => {
           const savedResult = saved.testResults[key]?.result;
-          if (savedResult) this.testResults[key].result = savedResult;
+          if (savedResult) {
+            this.testResults[key].result = savedResult;
+            this.testResults[key].detalhe = saved.testResults[key]?.detalhe || '';
+          }
         });
       }
       if (saved.autoTestSmartInfo) this.autoTestSmartInfo = saved.autoTestSmartInfo;
@@ -506,9 +522,10 @@ export const globalState = reactive({
     localStorage.setItem('app-lang', lang);
   },
 
-  saveResult(testKey, status) {
+  saveResult(testKey, status, detalhe = '') {
     if (this.testResults[testKey]) {
       this.testResults[testKey].result = status;
+      this.testResults[testKey].detalhe = detalhe || '';
     }
     // Um novo resultado deixa o relatório já enviado (se houver) desatualizado.
     this.reportSaved = false;

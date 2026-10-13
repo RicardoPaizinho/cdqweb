@@ -113,11 +113,13 @@ function avancarSequencia() {
   currentTest.value = sequencia.value[proximo];
 }
 
-const handleTestCompletion = (result) => {
+// Os testes emitem 'test-completed' com (resultado, detalhe) — o detalhe é o
+// que o teste conseguiu ler (ver src/utils/detalhesTeste.js) e vai pro banco.
+const handleTestCompletion = (result, detalhe = '') => {
   const key = currentTest.value;
   if (!key) return;
   const temResultado = result === 'PASS' || result === 'FAIL';
-  if (temResultado) globalState.saveResult(key, result);
+  if (temResultado) globalState.saveResult(key, result, detalhe);
 
   if (!emTesteFinal.value) {
     currentTest.value = null;
