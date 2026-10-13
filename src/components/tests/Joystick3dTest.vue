@@ -26,7 +26,7 @@
         <div class="instructions">
           <span>L2+R2:</span> VIBRAR | <span>BOTÕES:</span> Laranja | <span>ESTADO:</span> {{ missionStatus }}
         </div>
-        <button class="btn-mini pass" :disabled="!isFinished" @click="handlePass">PASS</button>
+        <button class="btn-mini pass" :class="{ 'pass-ready': isFinished }" :disabled="!isFinished" @click="handlePass">PASS</button>
       </div>
     </div>
   </div>

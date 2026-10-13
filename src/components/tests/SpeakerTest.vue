@@ -9,7 +9,7 @@
 
       <!-- Lado Direito: Botões Pass e Fail com transparência e brilho/glow -->
       <div class="header-actions">
-        <button class="btn-glass pass-neon tech-font" @click="handleEnd('PASS')">PASS</button>
+        <button class="btn-glass pass-neon tech-font pass-ready" @click="handleEnd('PASS')">PASS</button>
         <button class="btn-glass fail-neon tech-font" @click="handleEnd('FAIL')">FAIL</button>
       </div>
     </header>

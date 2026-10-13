@@ -114,6 +114,7 @@ onUnmounted(() => {
           <button 
             class="btn-header pass-neon tech-font" 
             :disabled="!canPass" 
+            :class="{ 'pass-ready': canPass }"
             @click="handlePass"
           >
             PASS

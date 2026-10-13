@@ -12,6 +12,7 @@
         <button 
           class="btn-glass pass-neon tech-font" 
           :disabled="!stream"
+          :class="{ 'pass-ready': stream }"
           @click="endTest('PASS')"
         >
           PASS

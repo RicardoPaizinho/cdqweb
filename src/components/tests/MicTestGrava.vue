@@ -48,7 +48,7 @@
       </div>
 
       <aside class="decision-sidebar">
-        <button class="btn-sidebar pass-neon tech-font" :disabled="!audioRecorded" @click="handleEnd('PASS')">PASS</button>
+        <button class="btn-sidebar pass-neon tech-font" :class="{ 'pass-ready': audioRecorded }" :disabled="!audioRecorded" @click="handleEnd('PASS')">PASS</button>
         <button class="btn-sidebar fail-neon tech-font" @click="handleEnd('FAIL')">FAIL</button>
       </aside>
     </div>

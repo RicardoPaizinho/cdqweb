@@ -8,7 +8,7 @@
       
       <!-- Linha Superior com os botões de Ação Direta -->
       <div class="top-action-bar tech-font">
-        <button class="btn-glass header-pass-neon tech-font" @click="endTest('PASS')">PASS</button>
+        <button class="btn-glass header-pass-neon tech-font pass-ready" @click="endTest('PASS')">PASS</button>
         <button class="btn-glass header-fail-neon tech-font" @click="endTest('FAIL')">FAIL</button>
         <span class="spec-info">{{ realWidth }}x{{ realHeight }} | {{ colorDepth }}BITS</span>
       </div>

@@ -94,7 +94,7 @@ const goBack = () => {
       </div>
 
       <div class="header-actions">
-        <button class="btn-glass pass-neon tech-font" @click="finishTest('PASS')">
+        <button class="btn-glass pass-neon tech-font pass-ready" @click="finishTest('PASS')">
           PASS
         </button>
         <button class="btn-glass fail-neon tech-font" @click="finishTest('FAIL')">

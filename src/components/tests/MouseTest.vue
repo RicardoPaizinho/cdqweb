@@ -15,6 +15,7 @@
           <button 
             class="btn-header pass-neon tech-font" 
             :disabled="!allDone"
+            :class="{ 'pass-ready': allDone }"
             @click="endTest('PASS')"
           >
             PASS

@@ -128,3 +128,21 @@
 body {
   transition: background-color 0.4s ease, color 0.4s ease;
 }
+/* ------------------------------------------------------------
+   BOTÃO PASS LIBERADO (todos os testes)
+   ------------------------------------------------------------
+   Cada teste coloca a classe "pass-ready" no botão PASS quando a condição
+   de aprovação foi cumprida. O TestesView.vue usa a mesma classe pra achar
+   o botão quando o técnico aperta Espaço (atalho pro PASS / próximo teste). */
+@keyframes pass-ready-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--status-pass-glow); }
+  50% { box-shadow: 0 0 18px var(--status-pass), 0 0 6px var(--status-pass-glow) inset; }
+}
+
+button.pass-ready:not(:disabled) {
+  color: var(--status-pass) !important;
+  border-color: var(--status-pass) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  animation: pass-ready-pulse 1.6s ease-in-out infinite;
+}

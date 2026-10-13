@@ -11,6 +11,7 @@
         <button
           class="btn-glass pass-neon tech-font"
           :disabled="!canPass"
+          :class="{ 'pass-ready': canPass }"
           @click="endTest('PASS')"
         >
           PASS

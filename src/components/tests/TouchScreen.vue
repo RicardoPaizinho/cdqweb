@@ -59,7 +59,21 @@ const minDotDistance = 35;
 const maxTrailLength = 12;
 
 // --- FUNÇÕES DE SAÍDA PADRONIZADAS ---
+// true depois de emitir o resultado — sair do fullscreen ao terminar (PASS ou
+// ESC/FAIL) não pode disparar um "cancelado" extra, que no Teste Final
+// interromperia a sequência.
+let finalizado = false;
+
+const onFullscreenChange = () => {
+  if (!document.fullscreenElement && !hasWon.value && !finalizado) {
+    finalizado = true;
+    emit('test-cancelled');
+  }
+};
+
 const handleEnd = (result) => {
+  if (finalizado) return;
+  finalizado = true;
   cancelAnimationFrame(animationId);
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
@@ -394,17 +408,14 @@ onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
 
   // Se sair do fullscreen manualmente, trata como cancelado
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && !hasWon.value) {
-      emit('test-cancelled');
-    }
-  });
+  document.addEventListener('fullscreenchange', onFullscreenChange);
 });
 
 onUnmounted(() => {
   cancelAnimationFrame(animationId);
   window.removeEventListener('resize', onResize);
   window.removeEventListener('keydown', handleKeyDown);
+  document.removeEventListener('fullscreenchange', onFullscreenChange);
   liberarPacman3D();
 });
 </script>

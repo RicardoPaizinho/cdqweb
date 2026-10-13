@@ -46,7 +46,7 @@
       </div>
 
       <aside class="decision-sidebar">
-        <button class="btn-sidebar pass-neon tech-font" @click="endTest('PASS')">PASS</button>
+        <button class="btn-sidebar pass-neon tech-font pass-ready" @click="endTest('PASS')">PASS</button>
         <button class="btn-sidebar fail-neon tech-font" @click="endTest('FAIL')">FAIL</button>
       </aside>
     </div>
