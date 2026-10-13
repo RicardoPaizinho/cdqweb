@@ -329,11 +329,6 @@ async function copiarCodigo(log) {
         </article>
       </div>
 
-      <p class="credits">
-        Descrições e passos de solução baseados no
-        <a href="https://github.com/p2nd2/BSOD-Guide" target="_blank" rel="noopener">BSOD-Guide</a>
-        (Ahmed Arafa, licença MIT), traduzido para o português. Diagnósticos da equipe têm prioridade.
-      </p>
     </div>
   </div>
 </template>
@@ -601,9 +596,6 @@ async function copiarCodigo(log) {
   border-radius: 6px;
   padding: 1px 7px;
 }
-
-.credits { font-size: 0.7rem; color: var(--text-dim); text-align: center; margin: 18px 0 4px; opacity: 0.8; }
-.credits a { color: var(--accent); }
 
 /* --- ESTADOS --- */
 .state-info { padding: 80px 20px; text-align: center; }

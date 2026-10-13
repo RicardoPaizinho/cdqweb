@@ -1,0 +1,120 @@
+CRÉDITOS — CDQ (hardware-test-page)
+=====================================
+
+Recursos de terceiros usados no projeto, com autor, licença e origem.
+Este arquivo vai junto no build (dist/creditos.txt). Ao adicionar um modelo,
+fonte, som, imagem ou biblioteca nova, registre aqui.
+
+Última revisão: 12/10/2026
+
+
+MODELOS 3D
+----------
+- "Pacman animated" (public/pacman_animated.glb) — teste de Touchscreen
+  Autor: Luall_Studio (https://sketchfab.com/luall_studio)
+  Licença: CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/)
+  Origem: https://sketchfab.com/3d-models/pacman-animated-e5e8dfb614da4fa69182f252fa4274a8
+
+- "Mini spaceship" (public/models/mini_spaceship.glb) — não usado no momento
+  Autor: shechtershani (https://sketchfab.com/shechtershani)
+  Licença: CC BY 4.0
+  Origem: https://sketchfab.com/3d-models/mini-spaceship-fc11879cc53241cf9bb72a10a2a0e285
+
+- "Yellow Submarine" (public/models/yellow_submarine.glb) — não usado no momento
+  Autor: Landon Wright (https://sketchfab.com/LandonWright)
+  Licença: CC BY 4.0
+  Origem: https://sketchfab.com/3d-models/yellow-submarine-0dcb53b8f0734509a83a51e672d27dc4
+
+- public/joystick.glb (teste de Joystick) e public/laptop.glb (LogoView)
+  Exportados do Blender, sem informação de autor no arquivo.
+  >> PENDENTE: confirmar se foram feitos pela equipe ou baixados (e de onde).
+
+
+FONTES
+------
+- Orbitron (public/fonts/Orbitron-VariableFont_wght.ttf) — em uso
+  Autor: Matt McInerney / The League of Moveable Type
+  Licença: SIL Open Font License 1.1 (https://openfontlicense.org)
+  Origem: https://github.com/theleagueof/orbitron
+
+- DS-Digital (public/fonts/DS-DIGI.ttf) — em uso (base.css)
+  Autor: Dusit Supasawat (DS-Font, 1998). "All Rights Reserved".
+  >> PENDENTE: o arquivo não informa licença; verificar se o uso comercial é permitido.
+
+- Zillah Modern (public/fonts/ZILLM.ttf) — em uso (base.css)
+  Autor: Graham Meade / Apostrophic Lab (www.apostrophiclab.com). "All rights reserved".
+  >> PENDENTE: o arquivo não informa licença; verificar se o uso comercial é permitido.
+
+Fontes na pasta public/fonts que NÃO são usadas no código (podem ser removidas):
+- 62DRAGZ (Youssef Habchi) — "Free for personal use only": NÃO pode ser usada comercialmente.
+- Brave New Era G98 (GemFonts) — licença não informada.
+- NEW ACADEMY (Gustavo Paz L.) — CC BY-SA 4.0.
+- Steelfish (Raymond Larabie / Typodermic Fonts Inc.) — licença não informada no arquivo.
+- Vermin Vibes (NAL, feita no FontStruct) — CC BY 3.0.
+
+
+SONS (teste de alto-falante — public/mp3)
+-----------------------------------------
+>> PENDENTE: nenhum dos sons tem licença registrada. Atenção especial:
+- Guns.mp3 — "Sweet Child O' Mine", Guns N' Roses (gravado do canal VEVO).
+  Música protegida por direitos autorais; não deve ser distribuída sem licença.
+- Yu_Yu_Hakusho.mp3 — tema do anime Yu Yu Hakusho. Música protegida por
+  direitos autorais; não deve ser distribuída sem licença.
+- bass-boosted-trap-beat.mp3 — "BASS BOOSTED TRAP BEAT !!!", baixado do YouTube
+  (marcado "Audio recorded by Yout.com"). Autor e licença desconhecidos.
+- Solo Guitarra.mp3, Kakarapo.wav, Wayaboo.wav — origem desconhecida.
+Sugestão: trocar por sons de domínio público / CC0 (ex: freesound.org com
+filtro CC0, ou Pixabay Music) e registrar aqui autor e licença.
+
+
+IMAGENS, TEXTURAS E ÍCONES
+--------------------------
+- Ícone de laptop — Nishanth Kunder, Icon-Icons.com
+  https://icon-icons.com/pt/authors/222-nishanth-kunder
+  (crédito registrado em Dicas.txt)
+- public/studio.hdr (iluminação do LogoView), public/texture/*,
+  src/assets/circuito.png, public/anima.json
+  >> PENDENTE: origem e licença não registradas.
+
+
+DADOS
+-----
+- BSOD-Guide (src/data/bsodGuide.json) — descrições, gravidade e passos de
+  solução de 426 códigos de tela azul, traduzidos do árabe para o português.
+  No Histórico de Falhas (Diagnósticos > Event Log), as descrições e os passos
+  de solução dos cards são baseados no BSOD-Guide; os diagnósticos da equipe
+  CDQ têm prioridade sobre ele.
+  Autor: Ahmed Arafa
+  Licença: MIT (texto completo em src/data/bsodGuide.LICENSE.txt)
+  Origem: https://github.com/p2nd2/BSOD-Guide
+
+- Nomes oficiais dos códigos de parada (src/data/bsodEvents.json): documentação
+  pública da Microsoft (Bug Check Code Reference).
+
+- Causas de tela azul (src/data/bsodCauses.js) e mapa driver -> componente
+  (src/data/driverComponents.js): equipe CDQ.
+
+
+BIBLIOTECAS (front-end, via npm)
+--------------------------------
+- Vue 3.5 — Evan You — MIT — https://vuejs.org
+- three.js 0.181 — mrdoob e colaboradores — MIT — https://threejs.org
+- GSAP 3.14 — GreenSock/Webflow — "Standard no-charge license" — https://gsap.com/standard-license
+- Chart.js 4.5 — MIT — https://www.chartjs.org
+- vue-chartjs 5.3 — Jakub Juszczak — MIT
+- chartjs-adapter-date-fns 3.0 — MIT
+- date-fns 4.1 — MIT — https://date-fns.org
+- cannon-es 0.20 — Stefan Hedman e colaboradores — MIT
+- stats.js 0.17 — mrdoob — MIT
+- Vite / @vitejs/plugin-vue / vite-plugin-vue-devtools (só no desenvolvimento) — MIT
+
+
+BIBLIOTECAS (agente local C# — HardwareTestApp)
+-----------------------------------------------
+- LibreHardwareMonitorLib — MPL 2.0 — https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
+- Newtonsoft.Json — James Newton-King — MIT
+- Vortice.DXGI — Amer Koleci — MIT
+- Microsoft WebView2 SDK — Microsoft (licença do SDK WebView2)
+- System.Management — Microsoft — MIT
+- Microsoft-WindowsAPICodePack-Shell, PawnIO
+  >> PENDENTE: confirmar a licença das versões usadas.
