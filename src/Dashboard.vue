@@ -64,17 +64,50 @@ function selecionarPeriodo(periodo) {
   fim.value = f;
 }
 
+// --- BUSCA POR O.S. OU SERIAL ---
+// Procura no banco inteiro (sem limite de período). Enquanto há uma busca
+// ativa, os cards e o resumo mostram os resultados dela em vez da produção.
+const termoBusca = ref('');
+const busca = ref(null); // { termo, registros }
+const buscando = ref(false);
+
+async function buscar() {
+  const termo = termoBusca.value.trim();
+  if (termo.length < 2) return;
+  buscando.value = true;
+  errorMsg.value = '';
+  try {
+    const response = await fetch(`${API_BASE_URL}/dashboard/busca?termo=${encodeURIComponent(termo)}`, { headers: authHeaders() });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) throw new Error(data?.message || 'Falha na busca.');
+    busca.value = { termo, registros: Array.isArray(data.registros) ? data.registros : [] };
+    filtroStatus.value = 'todos';
+  } catch (err) {
+    console.error('Erro na busca do dashboard:', err);
+    errorMsg.value = err.message || 'Não foi possível buscar.';
+  } finally {
+    buscando.value = false;
+  }
+}
+
+function limparBusca() {
+  busca.value = null;
+  termoBusca.value = '';
+}
+
+const registrosExibidos = computed(() => (busca.value ? busca.value.registros : registros.value));
+
 // --- RESUMO / AGRUPAMENTO ---
 const resumo = computed(() => ({
-  total: registros.value.length,
-  aprovados: registros.value.filter((r) => r.status === 'PASS').length,
-  reprovados: registros.value.filter((r) => r.status === 'FAIL').length,
+  total: registrosExibidos.value.length,
+  aprovados: registrosExibidos.value.filter((r) => r.status === 'PASS').length,
+  reprovados: registrosExibidos.value.filter((r) => r.status === 'FAIL').length,
 }));
 
 const registrosFiltrados = computed(() =>
   filtroStatus.value === 'todos'
-    ? registros.value
-    : registros.value.filter((r) => r.status === filtroStatus.value)
+    ? registrosExibidos.value
+    : registrosExibidos.value.filter((r) => r.status === filtroStatus.value)
 );
 
 // Agrupa por dia (o servidor já devolve ordenado do mais recente pro mais antigo)
@@ -129,6 +162,48 @@ function especificacoes(r) {
     { label: 'Armazenamento', valores: listar(r.armazenamento) },
     { label: 'Sistema', valores: listar(r.sistema) },
   ].map((s) => ({ ...s, valores: s.valores.length ? s.valores : ['—'] }));
+}
+
+// --- VERSO DO CARD: TESTES DE QUALIDADE ---
+// Colunas devolvidas pelo servidor em r.testes, na ordem em que aparecem
+const TESTES_QUALIDADE = [
+  ['testeLcd', 'LCD'], ['testeTouchpad', 'Touchpad'], ['testeTeclado', 'Teclado'],
+  ['testeMicrofone', 'Microfone'], ['testeSpeakers', 'Alto-falantes'], ['testeCamera', 'Câmera'],
+  ['testeRedes', 'Redes'], ['testeBateria', 'Bateria'], ['testeUsb', 'USB'],
+  ['testeFingerPrint', 'FingerPrint'], ['testeAuto', 'Auto teste'],
+];
+
+const virados = ref(new Set());
+function virarCard(id) {
+  const novo = new Set(virados.value);
+  novo.has(id) ? novo.delete(id) : novo.add(id);
+  virados.value = novo;
+}
+
+// O valor salvo é "PASS", "PASS: <detalhe>" ou "PASS | Disco: ..." (Auto teste)
+function lerTeste(valor) {
+  const texto = String(valor || '').trim();
+  const m = /^(PASS|FAIL)\s*[:|]?\s*(.*)$/is.exec(texto);
+  if (m) return { status: m[1].toUpperCase(), detalhe: m[2].trim() };
+  // Registros antigos (app C#) gravavam "não realizado" quando o teste não rodou
+  if (!texto || /^n[ãa]o realizado$/i.test(texto)) return { status: 'NA', detalhe: '' };
+  return { status: 'OUTRO', detalhe: texto };
+}
+
+function testesDoCard(r) {
+  return TESTES_QUALIDADE.map(([coluna, nome]) => {
+    const { status, detalhe } = lerTeste(r.testes?.[coluna]);
+    const rotulo = status === 'PASS' ? 'PASS' : status === 'FAIL' ? 'FAIL' : status === 'NA' ? 'Não realizado' : '—';
+    return { nome, status, detalhe, rotulo, classe: status.toLowerCase() };
+  });
+}
+
+function resumoTestes(r) {
+  const testes = testesDoCard(r);
+  const feitos = testes.filter((t) => t.status === 'PASS' || t.status === 'FAIL');
+  const aprovados = feitos.filter((t) => t.status === 'PASS').length;
+  if (!feitos.length) return 'Nenhum teste registrado';
+  return `${aprovados} de ${feitos.length} aprovados` + (feitos.length < testes.length ? ` · ${testes.length - feitos.length} não realizados` : '');
 }
 
 function rotuloStatus(r) {
@@ -220,7 +295,10 @@ function onKeydown(e) {
   if (e.key === 'Escape' && edicao.value) fecharEdicao();
 }
 
-watch([inicio, fim, escopo], fetchProducao);
+watch([inicio, fim, escopo], () => {
+  limparBusca(); // mudar o período volta pra visão de produção
+  fetchProducao();
+});
 // Troca de usuário (logout/login) sem recarregar a página
 watch(() => globalState.user?.nome, (nome) => { if (nome) fetchProducao(); });
 
@@ -264,6 +342,18 @@ onUnmounted(() => {
         <button class="seg-btn" :class="{ active: escopo === 'todos' }" @click="escopo = 'todos'">Todos</button>
       </div>
 
+      <form class="search-box" :class="{ active: busca }" @submit.prevent="buscar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+        </svg>
+        <input v-model="termoBusca" type="search" placeholder="Buscar O.S. ou serial" aria-label="Buscar O.S. ou serial" />
+        <button v-if="termoBusca || busca" type="button" class="search-clear" title="Limpar busca" @click="limparBusca">✕</button>
+        <button type="submit" class="search-go" :disabled="buscando || termoBusca.trim().length < 2">
+          {{ buscando ? '...' : 'Buscar' }}
+        </button>
+      </form>
+
       <button class="btn-refresh" @click="fetchProducao" :disabled="loading" title="Atualizar">
         <svg :class="{ spinning: loading }" width="16" height="16" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -289,11 +379,21 @@ onUnmounted(() => {
       </button>
     </section>
 
+    <div v-if="busca" class="search-banner">
+      <span>
+        Busca por <strong>"{{ busca.termo }}"</strong> —
+        {{ busca.registros.length }} {{ busca.registros.length === 1 ? 'registro encontrado' : 'registros encontrados' }}
+        <template v-if="busca.registros.length === 50"> (mostrando os 50 mais recentes)</template>
+      </span>
+      <button class="btn-link" @click="limparBusca">Voltar à produção do período</button>
+    </div>
+
     <p v-if="errorMsg" class="error-banner">{{ errorMsg }}</p>
 
     <div v-if="loading && registros.length === 0" class="empty-state">Carregando produção...</div>
     <div v-else-if="!errorMsg && grupos.length === 0" class="empty-state">
-      Nenhum equipamento registrado neste período.
+      <template v-if="busca">Nenhum registro encontrado para "{{ busca.termo }}".</template>
+      <template v-else>Nenhum equipamento registrado neste período.</template>
     </div>
 
     <!-- CARDS AGRUPADOS POR DIA -->
@@ -308,10 +408,17 @@ onUnmounted(() => {
       </header>
 
       <div class="cards-grid">
-        <article
+        <!-- Card que gira: frente = hardware, verso = testes de qualidade -->
+        <div
           v-for="r in grupo.itens"
           :key="r.id"
-          class="prod-card"
+          class="flip-card"
+          :class="{ virado: virados.has(r.id) }"
+          @click="virarCard(r.id)"
+        >
+        <div class="flip-inner">
+        <article
+          class="prod-card card-face card-front"
           :class="{ pass: r.status === 'PASS', fail: r.status === 'FAIL' }"
         >
           <header class="card-top">
@@ -320,7 +427,7 @@ onUnmounted(() => {
               v-if="isAdm"
               class="status-badge editable"
               title="Alterar status e comentário"
-              @click="abrirEdicao(r)"
+              @click.stop="abrirEdicao(r)"
             >
               {{ rotuloStatus(r) }}
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -348,9 +455,37 @@ onUnmounted(() => {
 
           <footer class="card-footer">
             <span>{{ r.tecnico || '—' }}</span>
-            <span>{{ r.hora }}</span>
+            <span class="flip-hint">{{ r.hora }} · Testes ↻</span>
           </footer>
         </article>
+
+        <article
+          class="prod-card card-face card-back"
+          :class="{ pass: r.status === 'PASS', fail: r.status === 'FAIL' }"
+        >
+          <header class="card-top">
+            <span class="os-number">{{ r.os }}</span>
+            <span class="back-title">Testes de qualidade</span>
+          </header>
+          <p class="tests-summary">{{ resumoTestes(r) }}</p>
+
+          <ul class="test-list">
+            <li v-for="t in testesDoCard(r)" :key="t.nome" class="test-row" :class="t.classe">
+              <div class="test-line">
+                <span class="test-name">{{ t.nome }}</span>
+                <span class="test-chip">{{ t.rotulo }}</span>
+              </div>
+              <p v-if="t.detalhe" class="test-detail">{{ t.detalhe }}</p>
+            </li>
+          </ul>
+
+          <footer class="card-footer">
+            <span>{{ r.tecnico || '—' }}</span>
+            <span class="flip-hint">Hardware ↻</span>
+          </footer>
+        </article>
+        </div>
+        </div>
       </div>
     </section>
 
@@ -492,8 +627,105 @@ onUnmounted(() => {
   color: var(--text-dim);
 }
 
-.btn-refresh {
+/* --- BUSCA --- */
+.search-box {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px 3px 3px 10px;
+  color: var(--text-dim);
+  transition: border-color 0.2s ease;
+}
+
+.search-box:focus-within,
+.search-box.active {
+  border-color: var(--accent);
+}
+
+.search-box input {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.82rem;
+  width: 170px;
+  padding: 0.4rem 0;
+}
+
+.search-box input:focus {
+  outline: none;
+}
+
+/* some com o "x" nativo do input search (já temos o nosso) */
+.search-box input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-clear {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0 0.3rem;
+}
+
+.search-clear:hover {
+  color: var(--text-main);
+}
+
+.search-go {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.search-go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.search-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1.2rem;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn-refresh {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -664,12 +896,118 @@ onUnmounted(() => {
 .prod-card.pass { --status-color: var(--status-pass); --status-glow: var(--status-pass-glow); }
 .prod-card.fail { --status-color: var(--status-fail); --status-glow: var(--status-fail-glow); }
 
-.prod-card:hover {
+/* --- CARD QUE GIRA (frente: hardware / verso: testes) --- */
+.flip-card {
+  perspective: 1400px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.flip-card:hover {
   transform: translateY(-3px);
+}
+
+/* As duas faces ficam na mesma célula do grid: a altura do card é a da face
+   mais alta, sem precisar de altura fixa. */
+.flip-inner {
+  display: grid;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+.flip-card.virado .flip-inner {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+.flip-card:hover .prod-card {
   box-shadow: 0 8px 20px var(--shadow-color);
   border-left-color: var(--accent);
   border-right-color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+.flip-hint {
+  color: var(--accent);
+}
+
+.back-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+}
+
+.tests-summary {
+  font-size: 0.78rem;
+  color: var(--text-main);
+  margin: 0 0 0.6rem;
+}
+
+.test-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.6rem 0 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.test-row {
+  --chip-color: var(--text-dim);
+  --chip-bg: var(--bg-hover);
+}
+
+.test-row.pass { --chip-color: var(--status-pass); --chip-bg: var(--status-pass-glow); }
+.test-row.fail { --chip-color: var(--status-fail); --chip-bg: var(--status-fail-glow); }
+.test-row.na { opacity: 0.55; }
+
+.test-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.test-name {
+  font-size: 0.8rem;
+  color: var(--text-main);
+}
+
+.test-chip {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  color: var(--chip-color);
+  background: var(--chip-bg);
+  white-space: nowrap;
+}
+
+.test-detail {
+  margin: 0.15rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--text-dim);
+  word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
 }
 
 .card-top {
