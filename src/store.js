@@ -246,38 +246,67 @@ export const globalState = reactive({
     testeAuto: 200
   },
 
+  // Tamanho das colunas de hardware no banco (nchar/nvarchar) — mesmo motivo
+  // do TEST_FIELD_LIMITS: um texto maior faria o salvamento inteiro falhar.
+  HARDWARE_FIELD_LIMITS: {
+    fabricante: 50, modelo: 50, systemFamily: 50, systemSkuNumber: 70, serialNumber: 50,
+    biosVersion: 50, operacionalSystem: 60, windowsAtivado: 50, chaveWindows: 50,
+    processador: 100, lcdResolution: 60, gpu: 150, gpu2: 150, memoriaTotal: 20,
+    memoriaDetalhada: 1000, discosDetalhado: 1000
+  },
+
   // Monta o bloco de dados de hardware a partir do que o Diagnostico.vue já
   // buscou do agente C# (/api/pc-info) e guardou em globalState.pcInfo.
-  // Campos que o backend C# ainda não expõe (systemSkuNumber, biosVersion,
-  // windowsAtivado, gpu2, memoriaDetalhada) vão em branco por enquanto.
   buildHardwarePayload() {
     const info = this.pcInfo || {};
-    return {
-      fabricante: info.systemFamily || '',
+    const campo = (m, ...nomes) => nomes.map((n) => m[n]).find((v) => v != null && v !== '') ?? '';
+
+    // Um pente por item. Pentes com o mesmo serial (ex: vários "00000000") o
+    // agente já soma num item só marcado IsOnBoard = "Sim" — são os chips
+    // soldados na placa, salvos como "8 GB On Board ..." sem listar cada banco.
+    const memoriaDetalhada = Array.isArray(info.memoriaDetalhada)
+      ? info.memoriaDetalhada.map((m) => {
+          const capacidade = campo(m, 'capacity', 'Capacity') || '—';
+          const tipo = [campo(m, 'memoryType', 'MemoryType'), campo(m, 'configuredClockSpeed', 'ConfiguredClockSpeed') && `${campo(m, 'configuredClockSpeed', 'ConfiguredClockSpeed')}Mhz`].filter(Boolean).join(' ');
+          if (String(campo(m, 'isOnBoard', 'IsOnBoard')).toLowerCase() === 'sim') {
+            return `${capacidade} On Board ${tipo}`.trim();
+          }
+          const fabricante = String(campo(m, 'manufacturer', 'Manufacturer')).trim();
+          const pn = String(campo(m, 'partNumber', 'PartNumber')).trim();
+          const sn = String(campo(m, 'serialNumber', 'SerialNumber')).trim();
+          return `${capacidade} ${fabricante} ${tipo} (Modelo: ${pn || '—'}, SN: ${sn || '—'})`.replace(/\s+/g, ' ').trim();
+        }).join(' | ')
+      : '';
+
+    // Modelo + serial de cada disco (agente novo); sem ele, cai no resumo antigo
+    const discos = Array.isArray(info.discosDetalhado) && info.discosDetalhado.length
+      ? info.discosDetalhado
+      : info.armazenamento;
+
+    const payload = {
+      fabricante: info.fabricante || info.systemFamily || '',
       modelo: info.model || '',
       systemFamily: info.systemFamily || '',
-      systemSkuNumber: '',
+      systemSkuNumber: info.systemSkuNumber || '',
       serialNumber: info.serialNumber || '',
-      biosVersion: '',
+      biosVersion: info.biosVersion || '',
       operacionalSystem: [info.system, info.systemBuild, info.systemVersion].filter(Boolean).join(' '),
-      windowsAtivado: '',
+      windowsAtivado: info.windowsAtivado || '',
       chaveWindows: info.systemKey || '',
       processador: info.processador_Name || '',
       lcdResolution: info.lcd || '',
       gpu: Array.isArray(info.placaVideo) ? info.placaVideo.join(' | ') : (info.placaVideo || ''),
       gpu2: '',
       memoriaTotal: info.memoria || '',
-      // Lista detalhada por pente, lida pelo agente C# (ReadSystemInfo.GetMemoryInfo
-      // -> Memorias), um pente por linha: capacidade, fabricante, tipo/clock e serial.
-      memoriaDetalhada: Array.isArray(info.memoriaDetalhada)
-        ? info.memoriaDetalhada
-            .map((m) => `${m.capacity || m.Capacity || '—'} ${m.manufacturer || m.Manufacturer || '—'} ` +
-                        `${m.memoryType || m.MemoryType || ''} ${m.configuredClockSpeed || m.ConfiguredClockSpeed || ''}Mhz ` +
-                        `(SN: ${m.serialNumber || m.SerialNumber || '—'}, PN: ${m.partNumber || m.PartNumber || '—'})`.trim())
-            .join(' | ')
-        : '',
-      discosDetalhado: Array.isArray(info.armazenamento) ? info.armazenamento.join(' | ') : (info.armazenamento || '')
+      memoriaDetalhada,
+      discosDetalhado: Array.isArray(discos) ? discos.join(' | ') : (discos || '')
     };
+
+    Object.entries(this.HARDWARE_FIELD_LIMITS).forEach(([nome, limite]) => {
+      const valor = String(payload[nome] ?? '');
+      if (valor.length > limite) payload[nome] = valor.slice(0, limite);
+    });
+    return payload;
   },
 
   // Envia o relatório completo (O.S. + status geral + comentários + todos os

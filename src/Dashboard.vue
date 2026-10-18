@@ -198,6 +198,46 @@ function testesDoCard(r) {
   });
 }
 
+const testesRealizados = (r) => testesDoCard(r).filter((t) => t.status === 'PASS' || t.status === 'FAIL');
+
+// --- JANELA DE DETALHES DO PRODUTO (clique no número da O.S.) ---
+// Os dados completos (memórias, discos, BIOS, Windows...) só são buscados aqui,
+// sob demanda, em /api/dashboard/registro/:id.
+const detalhe = ref(null); // { carregando, erro, registro, os }
+
+async function abrirDetalhes(r) {
+  detalhe.value = { carregando: true, erro: '', registro: null, os: r.os };
+  try {
+    const response = await fetch(`${API_BASE_URL}/dashboard/registro/${r.id}`, { headers: authHeaders() });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) throw new Error(data?.message || 'Falha ao carregar os dados.');
+    if (detalhe.value) detalhe.value = { carregando: false, erro: '', registro: data.registro, os: r.os };
+  } catch (err) {
+    if (detalhe.value) detalhe.value = { carregando: false, erro: err.message || 'Erro ao carregar.', registro: null, os: r.os };
+  }
+}
+
+const fecharDetalhes = () => { detalhe.value = null; };
+
+const valorOuTraco = (v) => (String(v ?? '').trim() || '—');
+
+// Seções da janela: [rótulo, valor] — valores vazios aparecem como "—"
+function secoesDetalhe(reg) {
+  return [
+    { titulo: 'Equipamento', linhas: [
+      ['Fabricante', reg.fabricante], ['Modelo', reg.modelo], ['Família', reg.systemFamily],
+      ['SKU', reg.systemSkuNumber], ['Serial', reg.serial], ['BIOS', reg.biosVersion],
+    ] },
+    { titulo: 'Sistema', linhas: [
+      ['Sistema operacional', reg.sistema], ['Windows ativado', reg.windowsAtivado], ['Chave do Windows', reg.chaveWindows],
+    ] },
+    { titulo: 'Hardware', linhas: [
+      ['Processador', reg.processador], ['Memória total', reg.memoriaTotal], ['Tela', reg.tela],
+      ['Placa de vídeo', [reg.gpu, reg.gpu2].filter((g) => String(g ?? '').trim()).join(' | ')],
+    ] },
+  ].map((sec) => ({ ...sec, linhas: sec.linhas.map(([rotulo, valor]) => [rotulo, valorOuTraco(valor)]) }));
+}
+
 function resumoTestes(r) {
   const testes = testesDoCard(r);
   const feitos = testes.filter((t) => t.status === 'PASS' || t.status === 'FAIL');
@@ -293,6 +333,7 @@ async function salvarEdicao() {
 // Esc fecha o modal de edição
 function onKeydown(e) {
   if (e.key === 'Escape' && edicao.value) fecharEdicao();
+  else if (e.key === 'Escape' && detalhe.value) fecharDetalhes();
 }
 
 watch([inicio, fim, escopo], () => {
@@ -422,7 +463,7 @@ onUnmounted(() => {
           :class="{ pass: r.status === 'PASS', fail: r.status === 'FAIL' }"
         >
           <header class="card-top">
-            <span class="os-number">{{ r.os }}</span>
+            <button class="os-number os-link" title="Ver todos os dados do produto" @click.stop="abrirDetalhes(r)">{{ r.os }}</button>
             <button
               v-if="isAdm"
               class="status-badge editable"
@@ -464,20 +505,16 @@ onUnmounted(() => {
           :class="{ pass: r.status === 'PASS', fail: r.status === 'FAIL' }"
         >
           <header class="card-top">
-            <span class="os-number">{{ r.os }}</span>
+            <button class="os-number os-link" title="Ver todos os dados do produto" @click.stop="abrirDetalhes(r)">{{ r.os }}</button>
             <span class="back-title">Testes de qualidade</span>
           </header>
           <p class="tests-summary">{{ resumoTestes(r) }}</p>
 
-          <ul class="test-list">
-            <li v-for="t in testesDoCard(r)" :key="t.nome" class="test-row" :class="t.classe">
-              <div class="test-line">
-                <span class="test-name">{{ t.nome }}</span>
-                <span class="test-chip">{{ t.rotulo }}</span>
-              </div>
-              <p v-if="t.detalhe" class="test-detail">{{ t.detalhe }}</p>
-            </li>
-          </ul>
+          <!-- Só os testes realizados: verde = PASS, vermelho = FAIL. Os detalhes
+               de cada um ficam na janela aberta pelo número da O.S. -->
+          <div class="test-chips">
+            <span v-for="t in testesRealizados(r)" :key="t.nome" class="test-chip-mini" :class="t.classe">{{ t.nome }}</span>
+          </div>
 
           <footer class="card-footer">
             <span>{{ r.tecnico || '—' }}</span>
@@ -488,6 +525,70 @@ onUnmounted(() => {
         </div>
       </div>
     </section>
+
+    <!-- JANELA DE DETALHES DO PRODUTO -->
+    <div v-if="detalhe" class="modal-backdrop" @click.self="fecharDetalhes">
+      <div class="modal modal-detalhes">
+        <header class="modal-header">
+          <div>
+            <span class="modal-kicker">Dados do produto</span>
+            <h3 class="modal-title">OS {{ detalhe.os }}</h3>
+            <p v-if="detalhe.registro" class="modal-sub">
+              {{ detalhe.registro.data }} {{ detalhe.registro.hora }} · {{ detalhe.registro.tecnico || '—' }} ·
+              <span :class="['status-text', detalhe.registro.status.toLowerCase()]">{{ rotuloStatus(detalhe.registro) }}</span>
+            </p>
+          </div>
+          <button type="button" class="modal-close" @click="fecharDetalhes" title="Fechar">✕</button>
+        </header>
+
+        <p v-if="detalhe.carregando" class="detalhe-estado">Carregando...</p>
+        <p v-else-if="detalhe.erro" class="modal-error">{{ detalhe.erro }}</p>
+
+        <div v-else class="detalhe-corpo">
+          <section v-for="sec in secoesDetalhe(detalhe.registro)" :key="sec.titulo" class="detalhe-secao">
+            <h4>{{ sec.titulo }}</h4>
+            <dl class="detalhe-lista">
+              <div v-for="[rotulo, valor] in sec.linhas" :key="rotulo" class="detalhe-linha">
+                <dt>{{ rotulo }}</dt><dd>{{ valor }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="detalhe-secao">
+            <h4>Memórias</h4>
+            <ul v-if="listar(detalhe.registro.memoriaDetalhada).length" class="detalhe-itens">
+              <li v-for="(m, i) in listar(detalhe.registro.memoriaDetalhada)" :key="i">{{ m }}</li>
+            </ul>
+            <p v-else class="detalhe-vazio">Não registrado</p>
+          </section>
+
+          <section class="detalhe-secao">
+            <h4>Discos</h4>
+            <ul v-if="listar(detalhe.registro.armazenamento).length" class="detalhe-itens">
+              <li v-for="(d, i) in listar(detalhe.registro.armazenamento)" :key="i">{{ d }}</li>
+            </ul>
+            <p v-else class="detalhe-vazio">Não registrado</p>
+          </section>
+
+          <section class="detalhe-secao detalhe-largo">
+            <h4>Testes de qualidade</h4>
+            <ul v-if="testesRealizados(detalhe.registro).length" class="detalhe-testes">
+              <li v-for="t in testesRealizados(detalhe.registro)" :key="t.nome">
+                <span class="test-chip-mini" :class="t.classe">{{ t.rotulo }}</span>
+                <strong>{{ t.nome }}</strong>
+                <span v-if="t.detalhe" class="detalhe-teste-texto">{{ t.detalhe }}</span>
+              </li>
+            </ul>
+            <p v-else class="detalhe-vazio">Nenhum teste registrado</p>
+          </section>
+
+          <section v-if="detalhe.registro.comentarios" class="detalhe-secao detalhe-largo">
+            <h4>Comentário</h4>
+            <p class="detalhe-comentario">{{ detalhe.registro.comentarios }}</p>
+          </section>
+        </div>
+      </div>
+    </div>
 
     <!-- MODAL DE ALTERAÇÃO DE STATUS (ADM) -->
     <div v-if="edicao" class="modal-backdrop" @click.self="fecharEdicao">
@@ -955,56 +1056,12 @@ onUnmounted(() => {
   margin: 0 0 0.6rem;
 }
 
-.test-list {
-  list-style: none;
-  margin: 0;
-  padding: 0.6rem 0 0;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  flex: 1;
-}
 
-.test-row {
-  --chip-color: var(--text-dim);
-  --chip-bg: var(--bg-hover);
-}
 
-.test-row.pass { --chip-color: var(--status-pass); --chip-bg: var(--status-pass-glow); }
-.test-row.fail { --chip-color: var(--status-fail); --chip-bg: var(--status-fail-glow); }
-.test-row.na { opacity: 0.55; }
 
-.test-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
 
-.test-name {
-  font-size: 0.8rem;
-  color: var(--text-main);
-}
 
-.test-chip {
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 0.1rem 0.5rem;
-  border-radius: 20px;
-  color: var(--chip-color);
-  background: var(--chip-bg);
-  white-space: nowrap;
-}
 
-.test-detail {
-  margin: 0.15rem 0 0;
-  font-size: 0.7rem;
-  line-height: 1.35;
-  color: var(--text-dim);
-  word-break: break-word;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .flip-inner { transition: none; }
@@ -1340,5 +1397,151 @@ onUnmounted(() => {
   .dashboard-container { padding: 1rem; }
   .btn-refresh { margin-left: 0; }
   .cards-grid { grid-template-columns: 1fr; }
+}
+
+/* --- VERSO COMPACTO: só testes realizados --- */
+.test-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  align-content: flex-start;
+  flex: 1;
+}
+
+.test-chip-mini {
+  --chip-color: var(--text-dim);
+  --chip-bg: var(--bg-hover);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  color: var(--chip-color);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-color);
+  white-space: nowrap;
+}
+
+.test-chip-mini.pass { --chip-color: var(--status-pass); --chip-bg: var(--status-pass-glow); }
+.test-chip-mini.fail { --chip-color: var(--status-fail); --chip-bg: var(--status-fail-glow); }
+
+/* --- NÚMERO DA O.S. COMO LINK --- */
+.os-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.os-link:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* --- JANELA DE DETALHES DO PRODUTO --- */
+.modal.modal-detalhes {
+  max-width: 820px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.status-text.pass { color: var(--status-pass); font-weight: 700; }
+.status-text.fail { color: var(--status-fail); font-weight: 700; }
+
+.detalhe-estado {
+  color: var(--text-dim);
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.detalhe-corpo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem 1.4rem;
+}
+
+.detalhe-secao h4 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  margin: 0 0 0.45rem;
+}
+
+.detalhe-largo {
+  grid-column: 1 / -1;
+}
+
+.detalhe-lista {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.detalhe-linha {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+}
+
+.detalhe-linha dt {
+  color: var(--text-dim);
+}
+
+.detalhe-linha dd {
+  margin: 0;
+  color: var(--text-main);
+  word-break: break-word;
+}
+
+.detalhe-itens {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.detalhe-vazio {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.detalhe-testes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.detalhe-testes li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-main);
+}
+
+.detalhe-teste-texto {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
+.detalhe-comentario {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  white-space: pre-wrap;
 }
 </style>

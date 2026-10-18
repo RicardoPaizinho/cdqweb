@@ -134,7 +134,7 @@ function updatePCInfo(data) {
   card_sistema.value = String(data.system || '');
   card_lcd.value = String(data.lcd || '');
   globalState.buscarRegistroEquipamento(data.serialNumber);
-  fabricante.value = String(data.systemFamily || '');
+  fabricante.value = String(data.fabricante || data.systemFamily || '');
 }
 
 function updatePerformance(cpu, memory, disk, realtime = null) {
