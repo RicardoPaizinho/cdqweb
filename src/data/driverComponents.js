@@ -176,6 +176,9 @@ const DRIVERS = {
   // --- Núcleo do Windows (raramente é a causa real) ---
   'ntoskrnl.exe': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft', dica: 'O próprio kernel raramente é a causa — costuma ser RAM ou outro driver. Testar a memória.' },
   'hal.dll': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft', dica: 'Camada de hardware do Windows — verificar BIOS, chipset e RAM.' },
+  'win32k.sys': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft (interface gráfica)', dica: 'Código do próprio Windows — se as telas azuis caem em pontos diferentes do Windows, suspeitar de hardware (processador ou RAM).' },
+  'win32kbase.sys': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft (interface gráfica)', dica: 'Código do próprio Windows — se as telas azuis caem em pontos diferentes do Windows, suspeitar de hardware (processador ou RAM).' },
+  'win32kfull.sys': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft (interface gráfica)', dica: 'Código do próprio Windows — se as telas azuis caem em pontos diferentes do Windows, suspeitar de hardware (processador ou RAM).' },
   'wdf01000.sys': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft (framework de drivers)', dica: 'Framework usado por vários drivers — o problema costuma ser outro driver.' },
   'fltmgr.sys': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft (filtros de arquivo)', dica: 'Normalmente é antivírus ou outro filtro de arquivos.' },
   'cng.sys': { componente: COMPONENTES.KERNEL, fabricante: 'Microsoft (criptografia)' },

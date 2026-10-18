@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { globalState } from '@/store.js';
 
 // Componentes de Estresse (Crie estes arquivos conforme avançar)
-//import CpuStress from '@/components/diag/CpuStress.vue';
+import CpuStress from '@/components/diags/CpuStress.vue';
 //import RamStress from '@/components/diag/RamStress.vue';
 //import DiskTest from '@/components/diag/DiskTest.vue';
 import GpuTests from '@/components/diags/GpuTests.vue'; // Seu LogoView/Unity vai aqui
@@ -13,6 +13,7 @@ import SmartTest from '@/components/diags/SmartTest.vue';
 const currentDiag = ref(null);
 
 const startDiag = (key) => {
+  apicsParaStress.value = []; // aberto pelo card: sem núcleos pré-selecionados
   currentDiag.value = key;
 };
 
@@ -20,10 +21,17 @@ const closeDiag = () => {
   currentDiag.value = null;
 };
 
+// Event Log -> CPU Stress: abre o stress já com os núcleos do erro WHEA selecionados
+const apicsParaStress = ref([]);
+const testarNucleos = (apics) => {
+  apicsParaStress.value = apics;
+  currentDiag.value = 'cpu';
+};
+
 // Mapeamento dos Testes de Estresse
 const diagButtons = [
   { key: 'gpu', title: 'GPU Stress', desc: 'Benchmark 3D e Estabilidade Térmica' },  
-  { key: 'cpu', title: 'CPU Stress', desc: 'Teste de instabilidade de núcleos-' },
+  { key: 'cpu', title: 'CPU Stress', desc: 'Estresse por núcleo, erros de cálculo, WHEA, temperatura e tensão' },
   { key: 'memoria', title: 'RAM Stress', desc: 'Verificação de endereçamento e escrita--' },
   { key: 'ssd', title: 'Disk I/O', desc: 'Velocidade de leitura e escrita sequencial' },
   { key: 'smart', title: 'SMART Test', desc: 'Análise de saúde do disco rígido' },
@@ -85,12 +93,12 @@ const getResultClass = (key) => {
     <div v-else class="diag-active-test">
       <button class="btn-back" @click="closeDiag">← VOLTAR AO DIAGNÓSTICO</button>
       
-      <CpuStress v-if="currentDiag === 'cpu'" @completed="closeDiag" />
+      <CpuStress v-if="currentDiag === 'cpu'" :apics-iniciais="apicsParaStress" @completed="closeDiag" />
       <RamStress v-else-if="currentDiag === 'memoria'" @completed="closeDiag" />
       <DiskTest v-else-if="currentDiag === 'ssd'" @completed="closeDiag" />
       <SmartTest v-else-if="currentDiag === 'smart'" @completed="closeDiag" />
       <GpuTests v-else-if="currentDiag === 'gpu'" @completed="closeDiag" />
-      <EventLogAnalyzer v-else-if="currentDiag === 'events'" @completed="closeDiag" />
+      <EventLogAnalyzer v-else-if="currentDiag === 'events'" @completed="closeDiag" @testar-cpu="testarNucleos" />
     </div>
 
   </div>

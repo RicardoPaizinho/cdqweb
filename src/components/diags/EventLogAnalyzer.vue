@@ -3,6 +3,11 @@ import { ref, onMounted, computed, watch } from 'vue';
 import bsodEventsRaw from '@/data/bsodEvents.json';
 import { getCauseForCode, getGuideForCode } from '@/data/bsodCauses.js';
 import { getDriverInfo } from '@/data/driverComponents.js';
+import { WHEA_EVENTOS, decodificarMciStat, diagnosticarWhea } from '@/data/wheaErrors.js';
+
+// "testar-cpu" leva os APIC IDs de um erro WHEA de processador pro CPU Stress
+// (o DiagsView.vue troca de tela e já deixa esses núcleos selecionados)
+const emit = defineEmits(['testar-cpu']);
 
 // --- CONFIGURAÇÃO DA API LOCAL (agente C#) ---
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -24,6 +29,9 @@ const JANELA_DRIVER_VIDEO_MS = 72 * 60 * 60 * 1000;
 const AI_PREFIX = 'IA: ';
 
 const logs = ref([]);
+const wheaEventos = ref([]); // /api/whea — erros de hardware (WheaService.cs no agente)
+const salvandoProvas = ref(false);
+const statusProvas = ref('');
 const isLoading = ref(true);
 const searchQuery = ref('');
 const connectionError = ref('');
@@ -145,6 +153,7 @@ async function carregar(metodo) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     logs.value = await response.json();
     connectionError.value = '';
+    await carregarWhea();
   } catch (err) {
     connectionError.value = metodo === 'POST'
       ? 'Não foi possível reexecutar a busca no agente local.'
@@ -154,6 +163,83 @@ async function carregar(metodo) {
     isLoading.value = false;
   }
 }
+
+async function carregarWhea() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/whea?dias=${dias.value}`);
+    wheaEventos.value = response.ok ? await response.json() : [];
+  } catch (err) {
+    wheaEventos.value = []; // agente antigo sem /api/whea: só não mostra os WHEA
+    console.warn('Não foi possível buscar os erros WHEA:', err);
+  }
+}
+
+// Grava Redist\logs\<Modelo>_<Serial>.txt no agente (substitui o Capturar-Crash.ps1)
+async function salvarProvas() {
+  salvandoProvas.value = true;
+  statusProvas.value = '';
+  try {
+    const response = await fetch(`${API_BASE_URL}/whea/salvar`, { method: 'POST' });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) throw new Error(data?.message || `HTTP ${response.status}`);
+    statusProvas.value = `Provas salvas em ${data.arquivo}`;
+  } catch (err) {
+    statusProvas.value = `Não foi possível salvar as provas: ${err.message}`;
+  } finally {
+    salvandoProvas.value = false;
+  }
+}
+
+// Agrupa os WHEA iguais (mesmo evento + núcleo + tipo) num card só, com a
+// contagem — 100 erros "Internal parity error" no APIC 33 viram 1 card.
+const wheaCards = computed(() => {
+  const grupos = new Map();
+  for (const ev of wheaEventos.value) {
+    const mca = decodificarMciStat(ev.mciStat);
+    const chave = `${ev.id}|${ev.apicId ?? '-'}|${ev.tipoErro || mca?.codigo || ''}`;
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(ev); // a lista vem do mais novo pro mais antigo
+  }
+  const porApic = new Map();
+  wheaEventos.value.forEach((ev) => { if (ev.apicId != null) porApic.set(ev.apicId, (porApic.get(ev.apicId) || 0) + 1); });
+
+  return [...grupos.entries()].map(([chave, eventos]) => {
+    const ultimo = eventos[0];
+    const primeiro = eventos[eventos.length - 1];
+    const info = WHEA_EVENTOS[ultimo.id] || { titulo: 'ERRO DE HARDWARE (WHEA)', gravidade: 'medium' };
+    const diag = diagnosticarWhea(ultimo, porApic.get(ultimo.apicId) || eventos.length);
+    const mca = diag.mca;
+    const partes = [
+      ultimo.componente, ultimo.tipoErro || mca?.descricao,
+      ultimo.mcaBank != null ? `banco MCA ${ultimo.mcaBank}` : null,
+    ].filter(Boolean).join(' · ');
+    return {
+      key: `whea-${chave}`,
+      type: 'whea',
+      typeLabel: 'HARDWARE (WHEA)',
+      name: info.titulo + (ultimo.apicId != null ? ` — APIC ${ultimo.apicId}` : ''),
+      hex: mca?.codigo || null,
+      date: ultimo.data,
+      dateIso: ultimo.dataIso,
+      origin: 'WHEA-Logger',
+      eventId: ultimo.id,
+      msg: ultimo.mensagem,
+      apicId: ultimo.apicId,
+      ocorrencias: eventos.length,
+      descricao: `${eventos.length} ocorrência(s)` + (eventos.length > 1 ? ` entre ${primeiro.data} e ${ultimo.data}` : '') + (partes ? ` — ${partes}` : ''),
+      causaEquipe: diag.causa,
+      causaIA: false,
+      guia: {
+        categoria: 'hardware',
+        gravidade: info.gravidade,
+        solucao: [diag.acao],
+        comandos: [],
+        tags: [diag.componente, ultimo.tipoErro || mca?.descricao].filter(Boolean),
+      },
+      testarNucleo: diag.nucleo,
+    };
+  });
+});
 
 const fetchLogs = () => carregar('GET');
 const refresh = () => carregar('POST');
@@ -166,12 +252,38 @@ watch(dias, fetchLogs);
 const enrichedLogs = computed(() =>
   relacionarDriverDeVideo(
     logs.value.map((log, i) => ({ ...log, key: `${log.dateIso || log.date}-${log.eventId}-${i}`, ...classify(log) }))
-  )
+  ).map(aplicarMinidump)
+);
+
+// O driver lido do minidump (MinidumpService.cs no agente) é a fonte mais
+// direta — o mesmo "O que falhou" da tela azul. Tem prioridade sobre o driver
+// de vídeo deduzido pelo travamento (Display 4101) anterior.
+function aplicarMinidump(log) {
+  const dump = log.minidump;
+  if (!dump?.driver) return log;
+  return {
+    ...log,
+    driverInfo: getDriverInfo(dump.driver),
+    driverFonte: dump.confirmado ? 'minidump' : 'minidump-provavel',
+    driverArquivoDump: dump.arquivo,
+    driverRelacionadoEm: null,
+  };
+}
+
+function rotuloDriver(log) {
+  if (log.driverFonte === 'minidump') return 'Driver que falhou (minidump)';
+  if (log.driverFonte === 'minidump-provavel') return 'Driver provável (minidump)';
+  return log.type === 'video' ? 'Driver envolvido' : 'Driver de vídeo relacionado';
+}
+
+// Telas azuis/desligamentos/vídeo + WHEA agrupados, do mais recente pro mais antigo
+const todosEventos = computed(() =>
+  [...enrichedLogs.value, ...wheaCards.value].sort((a, b) => String(b.dateIso || '').localeCompare(String(a.dateIso || '')))
 );
 
 const contagem = computed(() => {
-  const c = { todos: enrichedLogs.value.length, bsod: 0, shutdown: 0, video: 0 };
-  enrichedLogs.value.forEach((l) => { c[l.type]++; });
+  const c = { todos: todosEventos.value.length, bsod: 0, shutdown: 0, video: 0, whea: 0 };
+  todosEventos.value.forEach((l) => { c[l.type]++; });
   return c;
 });
 
@@ -180,12 +292,13 @@ const TIPOS = [
   { id: 'bsod', label: 'Telas azuis' },
   { id: 'shutdown', label: 'Desligamentos' },
   { id: 'video', label: 'Vídeo' },
+  { id: 'whea', label: 'Hardware (WHEA)' },
 ];
 
 // FILTRO (tipo + busca por nome, código, causa, driver ou tag)
 const filteredLogs = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
-  return enrichedLogs.value.filter((log) => {
+  return todosEventos.value.filter((log) => {
     if (filtroTipo.value !== 'todos' && log.type !== filtroTipo.value) return false;
     if (!q) return true;
     return [
@@ -217,7 +330,7 @@ async function copiarCodigo(log) {
     <div class="log-header">
       <div class="title-section">
         <h2>HISTÓRICO DE FALHAS DO SISTEMA</h2>
-        <p>Telas azuis, desligamentos inesperados e travamentos de vídeo nos últimos {{ dias }} dias</p>
+        <p>Telas azuis, desligamentos inesperados, travamentos de vídeo e erros de hardware (WHEA) nos últimos {{ dias }} dias</p>
       </div>
 
       <div class="actions">
@@ -229,8 +342,14 @@ async function copiarCodigo(log) {
         <button @click="refresh" class="btn-refresh" :disabled="isLoading">
           {{ isLoading ? 'BUSCANDO...' : 'ATUALIZAR' }}
         </button>
+        <button @click="salvarProvas" class="btn-provas" :disabled="salvandoProvas"
+                title="Grava eventos, WHEA e minidumps em Redist\logs, num arquivo com modelo e serial">
+          {{ salvandoProvas ? 'SALVANDO...' : 'SALVAR PROVAS' }}
+        </button>
       </div>
     </div>
+
+    <p v-if="statusProvas" class="provas-status">{{ statusProvas }}</p>
 
     <div class="type-filters">
       <button v-for="t in TIPOS" :key="t.id" class="type-chip" :class="['chip-' + t.id, { active: filtroTipo === t.id }]"
@@ -248,7 +367,7 @@ async function copiarCodigo(log) {
       </div>
 
       <div v-else-if="!connectionError && filteredLogs.length === 0" class="state-info">
-        <p v-if="enrichedLogs.length === 0">✅ Nenhuma tela azul, desligamento inesperado ou travamento de vídeo nos últimos {{ dias }} dias.</p>
+        <p v-if="todosEventos.length === 0">✅ Nenhuma tela azul, desligamento inesperado, travamento de vídeo ou erro de hardware nos últimos {{ dias }} dias.</p>
         <p v-else>Nenhum evento corresponde ao filtro.</p>
       </div>
 
@@ -289,7 +408,7 @@ async function copiarCodigo(log) {
           </div>
 
           <div v-if="log.driverInfo" class="info-box driver-box">
-            <span class="box-label">{{ log.type === 'video' ? 'Driver envolvido' : 'Driver de vídeo relacionado' }}</span>
+            <span class="box-label">{{ rotuloDriver(log) }}</span>
             <p>
               <code>{{ log.driverInfo.driver }}</code>
               <template v-if="log.driverInfo.componente">
@@ -300,7 +419,12 @@ async function copiarCodigo(log) {
             <p v-if="log.driverInfo.onboard" class="box-tip">Vídeo integrado: defeito físico aponta para a placa-mãe.</p>
             <p v-if="log.driverInfo.dica" class="box-tip">{{ log.driverInfo.dica }}</p>
             <p v-if="log.driverRelacionadoEm" class="box-tip">Travamento desse driver registrado em {{ log.driverRelacionadoEm }}, antes desta falha.</p>
+            <p v-if="log.driverArquivoDump" class="box-tip">Arquivo: C:\Windows\Minidump\{{ log.driverArquivoDump }}</p>
           </div>
+
+          <button v-if="log.testarNucleo" class="btn-testar-nucleo" @click="emit('testar-cpu', [log.apicId])">
+            Testar o núcleo APIC {{ log.apicId }} no CPU Stress →
+          </button>
 
           <div v-if="expandidos.has(log.key)" class="details">
             <template v-if="log.guia?.solucao?.length">
@@ -338,6 +462,7 @@ async function copiarCodigo(log) {
   --bsod-color: #3b82f6;
   --shutdown-color: #f59e0b;
   --video-color: #a855f7;
+  --whea-color: #f43f5e;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -427,6 +552,7 @@ async function copiarCodigo(log) {
 .type-chip.chip-bsod { --chip-color: var(--bsod-color); }
 .type-chip.chip-shutdown { --chip-color: var(--shutdown-color); }
 .type-chip.chip-video { --chip-color: var(--video-color); }
+.type-chip.chip-whea { --chip-color: var(--whea-color); }
 .type-chip:hover { border-color: var(--chip-color); }
 .type-chip.active { border-color: var(--chip-color); color: var(--chip-color); }
 .chip-count {
@@ -472,6 +598,44 @@ async function copiarCodigo(log) {
 }
 .crash-card.type-shutdown { --type-color: var(--shutdown-color); }
 .crash-card.type-video { --type-color: var(--video-color); }
+.crash-card.type-whea { --type-color: var(--whea-color); }
+
+.btn-provas {
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--accent);
+  font-weight: 700;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+.btn-provas:hover:not(:disabled) { background: var(--accent-glow); }
+.btn-provas:disabled { opacity: 0.6; cursor: wait; }
+
+.provas-status {
+  font-size: 0.78rem;
+  color: var(--text-main);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  word-break: break-all;
+}
+
+.btn-testar-nucleo {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--whea-color) 14%, transparent);
+  border: 1px solid var(--whea-color);
+  color: var(--whea-color);
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.btn-testar-nucleo:hover { background: color-mix(in srgb, var(--whea-color) 24%, transparent); }
 .crash-card:hover { border-color: var(--type-color); box-shadow: 0 6px 18px var(--shadow-color); }
 
 .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }

@@ -55,6 +55,8 @@ Cross-component data is put on `globalState` by its producer: `pcInfo` (from `Di
   - `src/data/bsodGuide.json`: 426 codes, translated from the BSOD-Guide by Ahmed Arafa. It is MIT-licensed, so keep the credit.
   - `bsodEvents.json`: Microsoft's names for the stop codes.
   - `src/data/driverComponents.js`: maps each driver file to the hardware component it controls.
+  - `src/data/wheaErrors.js`: hardware errors (WHEA). It describes each WHEA event ID and decodes the MCA error code from `MciStat`. Events come from the agent's `/api/whea`. Cards group them by event, APIC and error type. A processor error offers "test this core in CPU Stress".
+- `src/components/diags/CpuStress.vue`: CPU stress test that looks for calculation errors and new WHEA events. It also scores the machine and monitors temperature, voltage (VID) and clock. The load runs in the agent (`CpuStressService.cs`): each thread is pinned to one logical processor, so the test can target specific APIC IDs. Endpoints: `/cpu/topologia` and `/stress/start|status|stop`. `/whea/salvar` writes the evidence file to `Redist\logs` next to the agent.
 - `src/components/progress/ProgressBar*.vue`: alternative progress-bar styles, chosen in Configurações (`data-progress-style`).
 - `src/components/common/Icons.vue`: an inline SVG icon set, used as `<Icons name="..." size="48" />`.
 - `src/components/backs/`, `src/backupapp.txt`, `App-copia.vue`, `src/files.zip`: **old backups that nothing imports.** Don't edit them. Ignore them when searching.
